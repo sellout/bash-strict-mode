@@ -35,10 +35,19 @@
                 ${pkgs.bats}/bin/bats $src/test/all-tests.bash
               '';
 
+              # This isn’t executable, but putting it in `bin/` makes it
+              # possible for `source` to find it without a path.
               installPhase = ''
                 source $src/strict-mode.bash
-                mkdir -p $out
-                cp $src/strict-mode.bash $out/
+                mkdir -p $out/bin
+                cp $src/strict-mode.bash $out/bin/
+              '';
+
+              doInstallCheck = true;
+
+              installCheckPhase = ''
+                # should find strict-mode.bash in `PATH`
+                $src/test/is-on-path
               '';
             };
           };

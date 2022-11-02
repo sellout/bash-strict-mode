@@ -46,3 +46,10 @@ bats_require_minimum_version 1.5.0
     [[ "$output" =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory
        && "$output" =~ Error\ on\ line\ 5:\ RESULT=\$\(cat\ nothing-here-man\ |\ echo\ \"meh\"\) ]]
 }
+
+@test "isn’t already in PATH" {
+    # Run from somewhere that we’re unlikely to find strict-mode.bash.
+    cd $TMPDIR
+    run -1 "$src/test/is-on-path"
+    [[ "$output" =~ strict-mode\.bash:\ No\ such\ file\ or\ directory$ ]]
+}

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# This script intentionally assumes that strict-mode.bash is in `PATH`.
+
+source strict-mode.bash
