@@ -1,0 +1,4 @@
+/usr/bin/env bash
+
+RESULT=$(cat nothing-here-man | echo "meh")
+echo $RESULT
