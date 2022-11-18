@@ -51,5 +51,13 @@
               '';
             };
           };
+
+          devShells = {
+            default = pkgs.mkShell {
+              nativeBuildInputs = [
+                pkgs.nodePackages.bash-language-server
+              ];
+            };
+          };
         });
 }
