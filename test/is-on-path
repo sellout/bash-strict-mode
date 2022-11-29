@@ -2,4 +2,5 @@
 
 # This script intentionally assumes that strict-mode.bash is in `PATH`.
 
+# shellcheck disable=SC1091 # It’s on PATH, not local.
 source strict-mode.bash

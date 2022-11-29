@@ -1,5 +1,6 @@
-/usr/bin/env bash
+#!/usr/bin/env bash
 SCRIPTDIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+# shellcheck source-path=SCRIPTDIR
 source "$SCRIPTDIR/../strict-mode.bash"
 
 cat nothing-here-man

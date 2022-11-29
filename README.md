@@ -47,8 +47,8 @@ contents of this file change. By using `source`, all of your scripts are checked
 against a consistent strict mode.
 
 Now, to the behavior of this “strict mode”:
-* `set -e`: exit immediately if any command has a non-zero exit;
-* `set -u`: references to undefined variables are an error;
+* `set -e` / `-o errexit`: exit immediately if any command has a non-zero exit;
+* `set -u` / `-o nounset`: references to undefined variables are an error;
 * `set -o pipefail`: if a command that is not the end of the a pipeline (`|`)
    fails, fail the whole pipeline;
 * `shopt -s inherit_errexit`: If a subshell (`$()`) fails, fail the calling

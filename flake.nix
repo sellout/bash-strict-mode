@@ -18,7 +18,9 @@
           } ''
             source $src/strict-mode.bash
             find $src -name '*.bash' -exec \
-              ${pkgs.shellcheck}/bin/shellcheck {} \;
+              ${pkgs.shellcheck}/bin/shellcheck -x {} +
+            find $src/test -type f -exec \
+              ${pkgs.shellcheck}/bin/shellcheck -x {} +
             mkdir -p $out
           '';
       };
@@ -37,7 +39,7 @@
 
           checkPhase = ''
             source $src/strict-mode.bash
-            ${pkgs.bats}/bin/bats $src/test/all-tests.bash
+            ${pkgs.bats}/bin/bats $src/test/all-tests.bats
           '';
 
           # This isn’t executable, but putting it in `bin/` makes it
