@@ -39,11 +39,17 @@
             pkgs.bats
           ];
 
+          patchPhase = ''
+            runHook prePatch
+            patchShebangs ./test
+            runHook postPatch
+          '';
+
           doCheck = true;
 
           checkPhase = ''
-            source $src/strict-mode.bash
-            bats $src/test/all-tests.bats
+            source ./strict-mode.bash
+            bats --print-output-on-failure ./test/all-tests.bats
           '';
 
           # This isn’t executable, but putting it in `bin/` makes it
@@ -58,7 +64,7 @@
 
           installCheckPhase = ''
             # should find strict-mode.bash in `PATH`
-            $src/test/is-on-path
+            ./test/is-on-path
           '';
         };
       };
