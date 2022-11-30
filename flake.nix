@@ -35,11 +35,15 @@
 
           name = "bash-strict-mode";
 
+          nativeBuildInputs = [
+            pkgs.bats
+          ];
+
           doCheck = true;
 
           checkPhase = ''
             source $src/strict-mode.bash
-            ${pkgs.bats}/bin/bats $src/test/all-tests.bats
+            bats $src/test/all-tests.bats
           '';
 
           # This isn’t executable, but putting it in `bin/` makes it
@@ -60,11 +64,11 @@
       };
 
       devShells = {
-        default = pkgs.mkShell {
-          nativeBuildInputs = [
+        default = self.packages.${system}.default.overrideAttrs (old: {
+          nativeBuildInputs = old.nativeBuildInputs ++ [
             pkgs.nodePackages.bash-language-server
           ];
-        };
+        });
       };
     });
 
