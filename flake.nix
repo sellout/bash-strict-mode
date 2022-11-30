@@ -11,29 +11,25 @@
 
       src = pkgs.lib.cleanSource ./.;
     in {
-      checks = {
-        shellcheck =
-          pkgs.runCommand "shellcheck" {
-            inherit src;
-          } ''
-            source $src/strict-mode.bash
-            find $src -name '*.bash' -exec \
-              ${pkgs.shellcheck}/bin/shellcheck -x {} +
-            find $src/test -type f -exec \
-              ${pkgs.shellcheck}/bin/shellcheck -x {} +
-            mkdir -p $out
-          '';
-      };
-
-      formatter = pkgs.alejandra;
-
       packages = {
         default = self.packages.${system}.bash-strict-mode;
 
         bash-strict-mode = pkgs.stdenv.mkDerivation {
           inherit src;
 
-          name = "bash-strict-mode";
+          pname = "bash-strict-mode";
+
+          version = "0.1.0";
+
+          meta = {
+            description = "Making shell scripts more robust.";
+            longDescription = ''
+              Bash strict mode is a collection of settings to help catch bugs in
+              shell scripts. It is intended to be sourced in scripts, not used
+              in an interactive shell where some of the behaviors prohibited
+              here are desirable.
+            '';
+          };
 
           nativeBuildInputs = [
             pkgs.bats
@@ -71,11 +67,29 @@
 
       devShells = {
         default = self.packages.${system}.default.overrideAttrs (old: {
-          nativeBuildInputs = old.nativeBuildInputs ++ [
-            pkgs.nodePackages.bash-language-server
-          ];
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ [
+              pkgs.nodePackages.bash-language-server
+            ];
         });
       };
+
+      checks = {
+        shellcheck =
+          pkgs.runCommand "shellcheck" {
+            inherit src;
+          } ''
+            source $src/strict-mode.bash
+            find $src -name '*.bash' -exec \
+              ${pkgs.shellcheck}/bin/shellcheck -x {} +
+            find $src/test -type f -exec \
+              ${pkgs.shellcheck}/bin/shellcheck -x {} +
+            mkdir -p $out
+          '';
+      };
+
+      formatter = pkgs.alejandra;
     });
 
   inputs = {
