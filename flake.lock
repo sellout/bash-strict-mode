@@ -34,7 +34,24 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "shellcheck-nix-attributes": "shellcheck-nix-attributes"
+      }
+    },
+    "shellcheck-nix-attributes": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1586929030,
+        "narHash": "sha256-a0WyWaz+nMYFWI43Ip9EUnPuBW0O4EIiTzYZKGqNjss=",
+        "owner": "Fuuzetsu",
+        "repo": "shellcheck-nix-attributes",
+        "rev": "51b49d5fe65ece69eb5e2003396bf096083ec281",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Fuuzetsu",
+        "repo": "shellcheck-nix-attributes",
+        "type": "github"
       }
     }
   },

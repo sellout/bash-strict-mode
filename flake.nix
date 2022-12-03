@@ -3,18 +3,21 @@
     self,
     flake-utils,
     nixpkgs,
+    shellcheck-nix-attributes,
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
 
+      shellchecked = pkgs.callPackage shellcheck-nix-attributes {};
+
       src = pkgs.lib.cleanSource ./.;
     in {
       packages = {
         default = self.packages.${system}.bash-strict-mode;
 
-        bash-strict-mode = pkgs.stdenv.mkDerivation {
+        bash-strict-mode = shellchecked (pkgs.stdenv.mkDerivation {
           inherit src;
 
           pname = "bash-strict-mode";
@@ -62,22 +65,19 @@
             # should find strict-mode.bash in `PATH`
             ./test/is-on-path
           '';
-        };
-      };
-
-      devShells = {
-        default = self.packages.${system}.default.overrideAttrs (old: {
-          nativeBuildInputs =
-            old.nativeBuildInputs
-            ++ [
-              pkgs.nodePackages.bash-language-server
-            ];
         });
       };
 
+      devShells.default = shellchecked (pkgs.mkShell {
+        inputsFrom = builtins.attrValues self.packages.${system};
+
+        nativeBuildInputs = [
+          pkgs.nodePackages.bash-language-server
+        ];
+      });
+
       checks = {
-        shellcheck =
-          pkgs.runCommand "shellcheck" {
+        shellcheck = shellchecked (pkgs.runCommand "shellcheck" {
             inherit src;
           } ''
             source $src/strict-mode.bash
@@ -86,7 +86,7 @@
             find $src/test -type f -exec \
               ${pkgs.shellcheck}/bin/shellcheck -x {} +
             mkdir -p $out
-          '';
+          '');
       };
 
       formatter = pkgs.alejandra;
@@ -96,5 +96,10 @@
     flake-utils.url = "github:numtide/flake-utils";
 
     nixpkgs.url = "github:NixOS/nixpkgs/release-22.05";
+
+    shellcheck-nix-attributes = {
+      flake = false;
+      url = "github:Fuuzetsu/shellcheck-nix-attributes";
+    };
   };
 }
