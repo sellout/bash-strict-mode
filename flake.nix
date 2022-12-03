@@ -5,7 +5,12 @@
     nixpkgs,
     shellcheck-nix-attributes,
   }:
-    flake-utils.lib.eachDefaultSystem (system: let
+    {
+      overlays.default = final: prev: {
+        inherit (self.packages.${final.system}) bash-strict-mode;
+      };
+    }
+    // flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
         inherit system;
       };
