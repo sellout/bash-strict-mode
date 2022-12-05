@@ -73,13 +73,14 @@
         });
       };
 
-      devShells.default = shellchecked (pkgs.mkShell {
+      # TODO: Add `shellchecked` here after NixOS/nixpkgs#204606 is merged.
+      devShells.default = pkgs.mkShell {
         inputsFrom = builtins.attrValues self.packages.${system};
 
         nativeBuildInputs = [
           pkgs.nodePackages.bash-language-server
         ];
-      });
+      };
 
       checks = {
         shellcheck = shellchecked (pkgs.runCommand "shellcheck" {
