@@ -4,19 +4,26 @@ Making shell scripts more robust.
 
 ## usage
 
-This is intended to be sourced into other scripts.
+This is intended to be sourced into other scripts, but we also provide a `bash` wrapper that can be used even more succinctly:
 
-If `strict-mode.bash` is in your `PATH` (as it would be if you use the Nix
-derivation), then you simply need
+```bash
+#!/usr/bin/env strict-bash
+```
+
+That requires `strict-bash` to be in your `PATH`, but it can also be used from other locations from the command line:
+
+```bash
+$ path/to/strict-bash some-script.sh
+```
+
+However, strict mode can also be used at the file level by sourcing `strict-mode.bash`. If `strict-mode.bash` is in your `PATH` (as it would be if you use the Nix derivation), then you simply need
 
 ```bash
 #!/usr/bin/env bash
 source strict-mode.bash
 ```
 
-Otherwise, you need an extra line to tell your script how to find
-strict-mode. Some common approaches are to find it relative to the script you
-are currently writing[^1], like:
+Otherwise, you need an extra line to tell your script how to find strict mode. Some common approaches are to find it relative to the script you are currently writing[^1], like:
 
 ```bash
 #!/usr/bin/env bash
@@ -38,6 +45,56 @@ are also using a non-`PATH` approach, you will likely have to set shellcheck’s
 [`source-path` directive](https://www.shellcheck.net/wiki/Directive)[^2].
 `source-path`.
 
+### within Nix flakes
+
+```nix
+inputs = {
+  bash-strict-mode = {
+    inputs.nixpkgs.follows = "nixpkgs";
+    url = github:sellout/bash-strict-mode;
+  };
+  ...
+};
+```
+Make `strict-bash` and `strict-mode.bash` available to your derivations.
+
+```nix
+outputs = {self, bash-strict-mode, flake-utils, nixpkgs, ...}:
+  flake-utils.lib.eachDefaultSystem (system: let
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [bash-strict-mode.overlays.default];
+    };
+  in {
+    packages.default = mkDerivation {
+      ...
+      ### Make strict-bash (and strict-mode.bash) available via PATH.
+      nativeBuildInputs = [pkgs.bash-strict-mode];
+    };
+};
+```
+
+Use `strict-bash` instead of `bash` for your derivations’ builds.
+
+```nix
+outputs = {self, bash-strict-mode, flake-utils, nixpkgs, ...}:
+  flake-utils.lib.eachDefaultSystem (system: let
+    pkgs = import nixpkgs {inherit system;};
+  in {
+    ### Apply strict-bash and shellcheck to all the shell snippets in the
+    ### derivation’s build.
+    packages.default = bash-strict-mode.lib.checkedDrv pkgs (mkDerivation {
+      ...
+    });
+};
+```
+
+Use `strict-bash` locally, from the upstream flake.
+
+```bash
+$ nix run github:sellout/bash-strict-mode#strict-bash someScript
+```
+
 ## explanation
 
 The last line enables strict mode. You could alternatively just copy the body of
@@ -54,6 +111,52 @@ Now, to the behavior of this “strict mode”:
 * `shopt -s inherit_errexit`: If a subshell (`$()`) fails, fail the calling
    shell; and
 * `trap … ERR`: When an error occurs, report _where_ it occurred.
+
+## FAQ
+
+### How do I work around <some failure>?
+
+Strict mode can catch you by surprise, complaining about various idioms that you thought were fine for years. There are some approaches to avoid those issues described in [Use Bash Strict Mode (Unless You Love Debugging)](http://redsymbol.net/articles/unofficial-bash-strict-mode/#issues-and-solutions). One that I recommend is to use a subshell to scope disabling parts of strict mode. E.g.,
+
+```bash
+<safe code>
+(
+  set +o nounset
+  somethingInvolvingUnsetVars
+)
+```
+
+If the thing you are scoping involves `source` this might not work as easily. You have two options:
+
+1. explicitly disable then re-enable the settings
+
+   ```bash
+   set +u
+   source has-unset-vars.sh
+   set -u
+   codeDependingOnSource
+   ```
+
+2. include the code that depends on the `source` in the subshell
+
+   ```bash
+   (
+     set +u
+     source has-unset-vars.sh
+     codeDependingOnSource
+   )
+   ```
+
+Combining the two is also an option, and should ensure that the disabling is scoped, while still giving you checking on the code that needs to be included in the subshell.
+
+```bash
+(
+  set +u
+  source has-unset-vars.sh
+  set -u
+  codeDependingOnSource
+)
+```
 
 ## extensions
 

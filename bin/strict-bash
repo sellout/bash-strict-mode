@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+### This is intended to be a drop-in replacement for `bash` that executes with
+### strict-mode enabled. It’s not intended to be used as a shell, but as a
+### shebang substitute. I.e.
+###
+###     #!/usr/bin/env strict-bash
+###
+### should work identically to
+###
+###     #!/usr/bin/env bash
+###     source strict-mode.bash
+###
+### which can also be helpful in cases you don’t have control over the script,
+### but want to protect yourself, like
+###
+###     $ strict-bash some-unknown-script
+
+SCRIPTDIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+# shellcheck source-path=SCRIPTDIR
+source "${SCRIPTDIR}/strict-mode.bash"
+
+BASH_ENV="${SCRIPTDIR}/strict-mode.bash" exec bash "${@}"

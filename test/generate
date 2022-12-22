@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+SCRIPTDIR="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+# shellcheck source-path=SCRIPTDIR
+source "${SCRIPTDIR}/../bin/strict-mode.bash"
+
+### Generates a test suite for the named `test_type` (either `strict-bash` or
+### `strict-mode`).
+
+template_path="${SCRIPTDIR}/template"
+test_type="${1}"
+test_path="${SCRIPTDIR}/${test_type}"
+mkdir -p "${test_path}"
+
+cd "${template_path}" || exit 125
+for t in *
+do
+  old="${template_path}/${t}"
+  if [[ "${t}" =~ .*\.bash$ ]]
+  then
+    new="${test_path}/${t%.bash}"
+    {
+      cat "${test_path}.bash";
+      echo
+      cat "${old}"
+    } > "${new}"
+    chmod +x "${new}"
+  else
+    new="${test_path}/${t}"
+    cp "${old}" "${new}"
+  fi
+done
