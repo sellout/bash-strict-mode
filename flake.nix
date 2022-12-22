@@ -108,6 +108,10 @@
               runHook preCheck
               bats --print-output-on-failure ./test/all-tests.bats
               ./test/generate strict-mode
+              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
+                set +u
+                patchShebangs ./test/strict-mode
+              )
               bats --print-output-on-failure ./test/strict-mode/all-tests.bats
               runHook postCheck
             '';
@@ -127,6 +131,10 @@
               runHook preInstallCheck
               ./test/generate strict-bash
               export PATH="$out/bin:$PATH"
+              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
+                set +u
+                patchShebangs ./test/strict-bash
+              )
               # should find things in `PATH`
               ./test/is-on-path
               bats --print-output-on-failure ./test/strict-bash/all-tests.bats
