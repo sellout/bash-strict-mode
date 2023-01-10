@@ -1,10 +1,19 @@
 {
-  outputs = {
-    self,
-    flake-utils,
-    nixpkgs,
-    shellcheck-nix-attributes,
-  }: let
+  description = "Write better shell scripts.";
+
+  nixConfig = {
+    ## https://github.com/NixOS/rfcs/blob/master/rfcs/0045-deprecate-url-syntax.md
+    extra-experimental-features = ["no-url-literals"];
+    extra-substituters = ["https://cache.garnix.io"];
+    extra-trusted-public-keys = [
+      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+    ];
+    ## Isolate the build.
+    registries = false;
+    sandbox = true;
+  };
+
+  outputs = inputs: let
     ## Uses `strict-bash` instead of `bash` for the derivation builder. This
     ## _should_ work for any derivation, but if you’ve already set a builder
     ## that isn’t a Bash script, it’s unlikely to have any effect.
@@ -29,52 +38,79 @@
       });
   in
     {
-      overlays.default = final: prev: {
-        inherit (self.packages.${final.system}) bash-strict-mode;
+      overlays = {
+        default = final: prev: {
+          inherit (inputs.self.packages.${final.system}) bash-strict-mode;
+        };
       };
 
+      homeConfigurations =
+        builtins.listToAttrs
+        (builtins.map
+          (system: {
+            name = "${system}-example";
+            value = inputs.home-manager.lib.homeManagerConfiguration {
+              pkgs = import inputs.nixpkgs {
+                inherit system;
+                overlays = [inputs.self.overlays.default];
+              };
+
+              modules = [
+                ({pkgs, ...}: {
+                  home.packages = [pkgs.bash-strict-mode];
+
+                  # These attributes are simply required by home-manager.
+                  home = {
+                    homeDirectory = /tmp/bash-strict-mode-example;
+                    stateVersion = "22.11";
+                    username = "bash-strict-mode-example-user";
+                  };
+                })
+              ];
+            };
+          })
+          inputs.flake-utils.lib.defaultSystems);
+
       lib = {
-        ## Similar to `self.lib.drv`, but also runs shellcheck (provided as a
-        ## convenience, since this flake depends on shellcheck-nix-attributes
+        ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided as
+        ## a convenience, since this flake depends on shellcheck-nix-attributes
         ## already).
         checkedDrv = pkgs: drv:
-          self.lib.shellchecked pkgs (self.lib.drv pkgs drv);
+          inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
 
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
         drv = pkgs:
-          strictBuilder pkgs self.packages.${pkgs.system}.bash-strict-mode;
+          strictBuilder pkgs inputs.self.packages.${pkgs.system}.bash-strict-mode;
 
         ## Runs shellcheck on the snippets in a derivation.
         ##
         ## NB: Provided as a convenience, since shellcheck-nix-attributes
         ##     doesn’t yet have a flake. This will likely go away at some point
         ##     after that changes.
-        shellchecked = pkgs: pkgs.callPackage shellcheck-nix-attributes {};
+        shellchecked = pkgs: pkgs.callPackage inputs.shellcheck-nix-attributes {};
       };
     }
-    // flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+    // inputs.flake-utils.lib.eachDefaultSystem (system: let
+      pkgs = import inputs.nixpkgs {inherit system;};
 
       src = pkgs.lib.cleanSource ./.;
     in {
       apps = {
-        default = self.apps.${system}.strict-bash;
+        default = inputs.self.apps.${system}.strict-bash;
 
         ## TODO: This line is too long. See kamadorueda/alejandra#368
-        strict-bash = "${self.packages.${system}.bash-strict-mode}/bin/strict-bash";
+        strict-bash = "${inputs.self.packages.${system}.bash-strict-mode}/bin/strict-bash";
       };
 
       packages = {
-        default = self.packages.${system}.bash-strict-mode;
+        default = inputs.self.packages.${system}.bash-strict-mode;
 
         ## NB: This can’t use `self.lib.checkedDrv` because that creates a
         ##     cycle. So it uses `strictBuilder` directly, then calls
         ##    `self.lib.shellchecked`.
         bash-strict-mode =
-          self.lib.shellchecked pkgs
+          inputs.self.lib.shellchecked pkgs
           (strictBuilder pkgs ./. (pkgs.stdenv.mkDerivation {
             inherit src;
 
@@ -143,50 +179,76 @@
           }));
       };
 
-      ## TODO: Add `self.lib.checkedDrv` here after
-      ##       https://github.com/NixOS/nixpkgs/commit/58eb3d380601897c6ba9679eafc9c77305549b6f
-      ##       makes it into a release.
-      devShells.default = self.lib.drv pkgs (pkgs.mkShell {
+      ## TODO: Use `inputs.self.lib.checkedDrv` here after
+      ##       NixOS/nixpkgs#204606 makes it into a release.
+      devShells.default = inputs.self.lib.shellchecked pkgs (pkgs.mkShell {
         inputsFrom =
-          builtins.attrValues self.checks.${system}
-          ++ builtins.attrValues self.packages.${system};
+          builtins.attrValues inputs.self.checks.${system}
+          ++ builtins.attrValues inputs.self.packages.${system};
 
         nativeBuildInputs = [
+          ## Nix language server, https://github.com/oxalica/nil#readme
+          pkgs.nil
           ## Bash language server,
           ## https://github.com/bash-lsp/bash-language-server#readme
           pkgs.nodePackages.bash-language-server
-          ## Nix LSP server,
-          ## https://github.com/nix-community/rnix-lsp#readme
-          pkgs.rnix-lsp
         ];
       });
 
       checks = {
-        shellcheck = self.lib.checkedDrv pkgs (pkgs.runCommand "shellcheck" {
-            inherit src;
+        lint =
+          inputs.self.lib.checkedDrv pkgs
+          (pkgs.runCommand "shellcheck" {
+              inherit src;
 
-            nativeBuildInputs = [pkgs.shellcheck];
-          } ''
-            find $src/bin -type f -exec \
-              shellcheck --external-sources --shell bash {} +
-            find $src/test -type f -exec \
-              shellcheck --external-sources --shell bash {} +
-            mkdir -p $out
-          '');
+              nativeBuildInputs = [pkgs.shellcheck];
+            } ''
+              find $src/bin -type f -exec \
+                shellcheck --external-sources --shell bash {} +
+              find $src/test -type f -exec \
+                shellcheck --external-sources --shell bash {} +
+              mkdir -p $out
+            '');
+
+        nix-format = inputs.self.lib.checkedDrv pkgs (pkgs.stdenv.mkDerivation {
+          inherit src;
+
+          name = "nix fmt";
+
+          nativeBuildInputs = [inputs.self.formatter.${system}];
+
+          buildPhase = ''
+            runHook preBuild
+            alejandra --check .
+            runHook postBuild
+          '';
+
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out"
+            runHook preInstall
+          '';
+        });
       };
 
+      ## Nix code formatter, https://github.com/kamadorueda/alejandra#readme
       formatter = pkgs.alejandra;
     });
 
   inputs = {
-    flake-utils.url = github:numtide/flake-utils;
+    flake-utils.url = "github:numtide/flake-utils";
 
-    nixpkgs.url = github:NixOS/nixpkgs/release-22.11;
+    home-manager = {
+      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:nix-community/home-manager/release-22.11";
+    };
 
-    # lint shell snippets in Nix
+    nixpkgs.url = "github:NixOS/nixpkgs/release-22.11";
+
+    ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
       flake = false;
-      url = github:Fuuzetsu/shellcheck-nix-attributes;
+      url = "github:Fuuzetsu/shellcheck-nix-attributes";
     };
   };
 }
