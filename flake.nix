@@ -36,6 +36,8 @@
             else newArgs
           );
       });
+
+    supportedSystems = inputs.flake-utils.lib.defaultSystems;
   in
     {
       overlays = {
@@ -69,7 +71,7 @@
               ];
             };
           })
-          inputs.flake-utils.lib.defaultSystems);
+          supportedSystems);
 
       lib = {
         ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided as
@@ -116,7 +118,7 @@
         shellchecked = pkgs: pkgs.callPackage inputs.shellcheck-nix-attributes {};
       };
     }
-    // inputs.flake-utils.lib.eachDefaultSystem (system: let
+    // inputs.flake-utils.lib.eachSystem supportedSystems (system: let
       pkgs = import inputs.nixpkgs {inherit system;};
 
       src = pkgs.lib.cleanSource ./.;
