@@ -78,6 +78,31 @@
         checkedDrv = pkgs: drv:
           inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
 
+        checks = {
+          ## A Shellcheck check, see `outputs.checks.${system}.lint` for an
+          ## example.
+          shellcheck = {
+            pkgs,
+            src,
+            args ? [],
+          }:
+            inputs.self.lib.checkedDrv pkgs
+            (pkgs.runCommand "shellcheck" {
+                inherit src;
+
+                nativeBuildInputs = [pkgs.shellcheck];
+              } ''
+                find "$src" -type f -not -name "*shellcheckrc" -exec \
+                  shellcheck \
+                  ${inputs.nixpkgs.lib.concatMapStringsSep
+                  " "
+                  (arg: "\"${arg}\"")
+                  args} \
+                  {} +
+                mkdir -p $out
+              '');
+        };
+
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
         drv = pkgs:
@@ -196,19 +221,16 @@
       });
 
       checks = {
-        lint =
-          inputs.self.lib.checkedDrv pkgs
-          (pkgs.runCommand "shellcheck" {
-              inherit src;
-
-              nativeBuildInputs = [pkgs.shellcheck];
-            } ''
-              find $src/bin -type f -exec \
-                shellcheck --external-sources --shell bash {} +
-              find $src/test -type f -exec \
-                shellcheck --external-sources --shell bash {} +
-              mkdir -p $out
-            '');
+        lint = inputs.self.lib.checks.shellcheck {
+          inherit pkgs;
+          args = ["--external-sources"];
+          src =
+            builtins.filterSource
+            (path: type:
+              inputs.nixpkgs.lib.hasInfix "/bin" path
+              || inputs.nixpkgs.lib.hasInfix "/test" path)
+            ./.;
+        };
 
         nix-format = inputs.self.lib.checkedDrv pkgs (pkgs.stdenv.mkDerivation {
           inherit src;
