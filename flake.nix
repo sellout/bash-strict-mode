@@ -208,7 +208,7 @@
 
       ## TODO: Use `inputs.self.lib.checkedDrv` here after
       ##       NixOS/nixpkgs#204606 makes it into a release.
-      devShells.default = inputs.self.lib.shellchecked pkgs (pkgs.mkShell {
+      devShells.default = inputs.self.lib.drv pkgs (pkgs.mkShell {
         inputsFrom =
           builtins.attrValues inputs.self.checks.${system}
           ++ builtins.attrValues inputs.self.packages.${system};
