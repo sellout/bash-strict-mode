@@ -267,7 +267,7 @@
       url = "github:nix-community/home-manager/release-22.11";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
