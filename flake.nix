@@ -64,7 +64,7 @@
                   # These attributes are simply required by home-manager.
                   home = {
                     homeDirectory = /tmp/bash-strict-mode-example;
-                    stateVersion = "22.11";
+                    stateVersion = "23.05";
                     username = "bash-strict-mode-example-user";
                   };
                 })
@@ -264,10 +264,10 @@
 
     home-manager = {
       inputs.nixpkgs.follows = "nixpkgs";
-      url = "github:nix-community/home-manager/release-22.11";
+      url = "github:nix-community/home-manager/release-23.05";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-22.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
