@@ -4,10 +4,10 @@
   nixConfig = {
     ## https://github.com/NixOS/rfcs/blob/master/rfcs/0045-deprecate-url-syntax.md
     extra-experimental-features = ["no-url-literals"];
-    extra-substituters = ["https://cache.garnix.io"];
     extra-trusted-public-keys = [
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
     ];
+    extra-trusted-substituters = ["https://cache.garnix.io"];
     ## Isolate the build.
     registries = false;
     sandbox = true;
@@ -108,14 +108,17 @@
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
         drv = pkgs:
-          strictBuilder pkgs inputs.self.packages.${pkgs.system}.bash-strict-mode;
+          strictBuilder
+          pkgs
+          inputs.self.packages.${pkgs.system}.bash-strict-mode;
 
         ## Runs shellcheck on the snippets in a derivation.
         ##
         ## NB: Provided as a convenience, since shellcheck-nix-attributes
         ##     doesn’t yet have a flake. This will likely go away at some point
         ##     after that changes.
-        shellchecked = pkgs: pkgs.callPackage inputs.shellcheck-nix-attributes {};
+        shellchecked = pkgs:
+          pkgs.callPackage inputs.shellcheck-nix-attributes {};
       };
     }
     // inputs.flake-utils.lib.eachSystem supportedSystems (system: let
@@ -206,9 +209,7 @@
           }));
       };
 
-      ## TODO: Use `inputs.self.lib.checkedDrv` here after
-      ##       NixOS/nixpkgs#204606 makes it into a release.
-      devShells.default = inputs.self.lib.drv pkgs (pkgs.mkShell {
+      devShells.default = inputs.self.lib.checkedDrv pkgs (pkgs.mkShell {
         inputsFrom =
           builtins.attrValues inputs.self.checks.${system}
           ++ builtins.attrValues inputs.self.packages.${system};
