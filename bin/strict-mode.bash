@@ -1,6 +1,7 @@
-set -o errexit \
-    -o nounset \
-    -o pipefail
+set \
+  -o errexit \
+  -o nounset \
+  -o pipefail
 
 # `inherit_errexit` was only added in Bash 4.4, and MacOS still includes 3.2.
 [[ "${BASH_VERSINFO[0]}" -ge 4 && "${BASH_VERSINFO[1]}" -ge 4 ]] \

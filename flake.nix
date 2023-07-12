@@ -80,29 +80,44 @@
         checkedDrv = pkgs: drv:
           inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
 
-        checks = {
-          ## A Shellcheck check, see `outputs.checks.${system}.lint` for an
+        checks = let
+          simpleCheck = pkgs: src: name: input: cmd:
+            inputs.self.lib.checkedDrv pkgs
+            (pkgs.runCommand name {
+                inherit src;
+
+                nativeBuildInputs = [input];
+              } ''
+                ${cmd}
+                mkdir -p "$out"
+              '');
+        in {
+          bash-format = pkgs: src:
+            simpleCheck pkgs src "shfmt" pkgs.shfmt "shfmt --diff \"$src\"";
+
+          ## A Shellcheck check, see `outputs.checks.${system}.lint-bash` for an
           ## example.
-          shellcheck = {
+          bash-lint = {
             pkgs,
             src,
             args ? [],
           }:
-            inputs.self.lib.checkedDrv pkgs
-            (pkgs.runCommand "shellcheck" {
-                inherit src;
+            simpleCheck pkgs src "shellcheck" pkgs.shellcheck
+            ''
+              find "$src" -type f -not -name "*shellcheckrc" -exec \
+                shellcheck \
+                ${inputs.nixpkgs.lib.concatMapStringsSep
+                " "
+                (arg: "\"${arg}\"")
+                args} \
+                {} +
+            '';
 
-                nativeBuildInputs = [pkgs.shellcheck];
-              } ''
-                find "$src" -type f -not -name "*shellcheckrc" -exec \
-                  shellcheck \
-                  ${inputs.nixpkgs.lib.concatMapStringsSep
-                  " "
-                  (arg: "\"${arg}\"")
-                  args} \
-                  {} +
-                mkdir -p $out
-              '');
+          nix-format = pkgs: src:
+            simpleCheck pkgs src "nix fmt" inputs.self.formatter.${pkgs.system}
+            "alejandra --check \"$src\"";
+
+          simple = simpleCheck;
         };
 
         ## This takes a derivation and ensures its shell snippets are run in
@@ -224,7 +239,9 @@
       });
 
       checks = {
-        lint = inputs.self.lib.checks.shellcheck {
+        bash-format = inputs.self.lib.checks.bash-format pkgs src;
+
+        bash-lint = inputs.self.lib.checks.bash-lint {
           inherit pkgs;
           args = ["--external-sources"];
           src =
@@ -232,28 +249,10 @@
             (path: type:
               inputs.nixpkgs.lib.hasInfix "/bin" path
               || inputs.nixpkgs.lib.hasInfix "/test" path)
-            ./.;
+            src;
         };
 
-        nix-format = inputs.self.lib.checkedDrv pkgs (pkgs.stdenv.mkDerivation {
-          inherit src;
-
-          name = "nix fmt";
-
-          nativeBuildInputs = [inputs.self.formatter.${system}];
-
-          buildPhase = ''
-            runHook preBuild
-            alejandra --check .
-            runHook postBuild
-          '';
-
-          installPhase = ''
-            runHook preInstall
-            mkdir -p "$out"
-            runHook preInstall
-          '';
-        });
+        nix-format = inputs.self.lib.checks.nix-format pkgs src;
       };
 
       ## Nix code formatter, https://github.com/kamadorueda/alejandra#readme
