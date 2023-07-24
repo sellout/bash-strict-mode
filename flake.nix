@@ -74,26 +74,24 @@
           supportedSystems);
 
       lib = {
-        ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided as
-        ## a convenience, since this flake depends on shellcheck-nix-attributes
-        ## already).
+        ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided
+        ## as a convenience, since this flake depends on
+        ## shellcheck-nix-attributes already).
         checkedDrv = pkgs: drv:
           inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
 
         checks = let
-          simpleCheck = pkgs: src: name: input: cmd:
+          simple = pkgs: src: name: nativeBuildInputs: cmd:
             inputs.self.lib.checkedDrv pkgs
-            (pkgs.runCommand name {
-                inherit src;
-
-                nativeBuildInputs = [input];
-              } ''
-                ${cmd}
-                mkdir -p "$out"
-              '');
+            (pkgs.runCommand name {inherit nativeBuildInputs src;} ''
+              ${cmd}
+              mkdir -p "$out"
+            '');
         in {
+          inherit simple;
+
           bash-format = pkgs: src:
-            simpleCheck pkgs src "shfmt" pkgs.shfmt "shfmt --diff \"$src\"";
+            simple pkgs src "shfmt" [pkgs.shfmt] "shfmt --diff \"$src\"";
 
           ## A Shellcheck check, see `outputs.checks.${system}.lint-bash` for an
           ## example.
@@ -102,22 +100,19 @@
             src,
             args ? [],
           }:
-            simpleCheck pkgs src "shellcheck" pkgs.shellcheck
+            simple pkgs src "shellcheck" [pkgs.shellcheck pkgs.shfmt]
             ''
-              find "$src" -type f -not -name "*shellcheckrc" -exec \
-                shellcheck \
+              shellcheck \
                 ${inputs.nixpkgs.lib.concatMapStringsSep
                 " "
                 (arg: "\"${arg}\"")
                 args} \
-                {} +
+                $(shfmt --find "${src}")
             '';
 
           nix-format = pkgs: src:
-            simpleCheck pkgs src "nix fmt" inputs.self.formatter.${pkgs.system}
+            simple pkgs src "nix fmt" [inputs.self.formatter.${pkgs.system}]
             "alejandra --check \"$src\"";
-
-          simple = simpleCheck;
         };
 
         ## This takes a derivation and ensures its shell snippets are run in
