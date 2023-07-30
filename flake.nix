@@ -49,28 +49,14 @@
       homeConfigurations =
         builtins.listToAttrs
         (builtins.map
-          (system: {
-            name = "${system}-example";
-            value = inputs.home-manager.lib.homeManagerConfiguration {
-              pkgs = import inputs.nixpkgs {
-                inherit system;
-                overlays = [inputs.self.overlays.default];
-              };
-
-              modules = [
-                ({pkgs, ...}: {
-                  home.packages = [pkgs.bash-strict-mode];
-
-                  # These attributes are simply required by home-manager.
-                  home = {
-                    homeDirectory = /tmp/bash-strict-mode-example;
-                    stateVersion = "23.05";
-                    username = "bash-strict-mode-example-user";
-                  };
-                })
-              ];
-            };
-          })
+          (inputs.flaky.lib.homeConfigurations.example
+            "bash-strict-mode"
+            inputs.self
+            [
+              ({pkgs, ...}: {
+                home.packages = [pkgs.bash-strict-mode];
+              })
+            ])
           supportedSystems);
 
       lib = {
@@ -79,41 +65,6 @@
         ## shellcheck-nix-attributes already).
         checkedDrv = pkgs: drv:
           inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
-
-        checks = let
-          simple = pkgs: src: name: nativeBuildInputs: cmd:
-            inputs.self.lib.checkedDrv pkgs
-            (pkgs.runCommand name {inherit nativeBuildInputs src;} ''
-              ${cmd}
-              mkdir -p "$out"
-            '');
-        in {
-          inherit simple;
-
-          bash-format = pkgs: src:
-            simple pkgs src "shfmt" [pkgs.shfmt] "shfmt --diff \"$src\"";
-
-          ## A Shellcheck check, see `outputs.checks.${system}.lint-bash` for an
-          ## example.
-          bash-lint = {
-            pkgs,
-            src,
-            args ? [],
-          }:
-            simple pkgs src "shellcheck" [pkgs.shellcheck pkgs.shfmt]
-            ''
-              shellcheck \
-                ${inputs.nixpkgs.lib.concatMapStringsSep
-                " "
-                (arg: "\"${arg}\"")
-                args} \
-                $(shfmt --find "${src}")
-            '';
-
-          nix-format = pkgs: src:
-            simple pkgs src "nix fmt" [inputs.self.formatter.${pkgs.system}]
-            "alejandra --check \"$src\"";
-        };
 
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
@@ -135,6 +86,18 @@
       pkgs = import inputs.nixpkgs {inherit system;};
 
       src = pkgs.lib.cleanSource ./.;
+
+      format = inputs.flaky.lib.format pkgs {
+        settings.formatter = let
+          shellFiles = ["*.bash" "bin/*" "test/*"];
+        in {
+          shellcheck = {
+            includes = shellFiles;
+            options = ["--external-sources"];
+          };
+          shfmt.includes = shellFiles;
+        };
+      };
     in {
       apps = {
         default = inputs.self.apps.${system}.strict-bash;
@@ -219,47 +182,20 @@
           }));
       };
 
-      devShells.default = inputs.self.lib.checkedDrv pkgs (pkgs.mkShell {
-        inputsFrom =
-          builtins.attrValues inputs.self.checks.${system}
-          ++ builtins.attrValues inputs.self.packages.${system};
+      devShells.default =
+        inputs.flaky.lib.devShells.default pkgs inputs.self [] "";
 
-        nativeBuildInputs = [
-          ## Nix language server, https://github.com/oxalica/nil#readme
-          pkgs.nil
-          ## Bash language server,
-          ## https://github.com/bash-lsp/bash-language-server#readme
-          pkgs.nodePackages.bash-language-server
-        ];
-      });
+      checks.format = format.check inputs.self;
 
-      checks = {
-        bash-format = inputs.self.lib.checks.bash-format pkgs src;
-
-        bash-lint = inputs.self.lib.checks.bash-lint {
-          inherit pkgs;
-          args = ["--external-sources"];
-          src =
-            builtins.filterSource
-            (path: type:
-              inputs.nixpkgs.lib.hasInfix "/bin" path
-              || inputs.nixpkgs.lib.hasInfix "/test" path)
-            src;
-        };
-
-        nix-format = inputs.self.lib.checks.nix-format pkgs src;
-      };
-
-      ## Nix code formatter, https://github.com/kamadorueda/alejandra#readme
-      formatter = pkgs.alejandra;
+      formatter = format.wrapper;
     });
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
 
-    home-manager = {
-      inputs.nixpkgs.follows = "nixpkgs";
-      url = "github:nix-community/home-manager/release-23.05";
+    flaky = {
+      inputs.bash-strict-mode.follows = "";
+      url = "github:sellout/flaky";
     };
 
     nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";

@@ -1,4 +1,0 @@
-### -*- mode: sh -*-
-
-### Empty. Only here so we test that it’s ignored by `lib.checks.shellcheck` in
-### the Nix flake. When it’s not ignored, we should get an error about “SC2148”.
