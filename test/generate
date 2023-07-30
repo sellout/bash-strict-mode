@@ -14,13 +14,13 @@ mkdir -p "${test_path}"
 cd "${template_path}" || exit 125
 for t in *; do
   old="${template_path}/${t}"
-  if [[ "${t}" =~ .*\.bash$ ]]; then
+  if [[ ${t} =~ .*\.bash$ ]]; then
     new="${test_path}/${t%.bash}"
     {
       cat "${test_path}.bash"
       echo
       cat "${old}"
-    } > "${new}"
+    } >"${new}"
     chmod +x "${new}"
   else
     new="${test_path}/${t}"

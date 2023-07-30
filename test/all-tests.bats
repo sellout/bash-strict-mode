@@ -12,5 +12,5 @@ bats_require_minimum_version 1.5.0
   # Run from somewhere that we’re unlikely to find strict-mode.bash.
   cd "$TMPDIR"
   run -1 "$BATS_TEST_DIRNAME/is-on-path"
-  [[ "$output" =~ strict-mode\.bash:\ No\ such\ file\ or\ directory$ ]]
+  [[ $output =~ strict-mode\.bash:\ No\ such\ file\ or\ directory$ ]]
 }

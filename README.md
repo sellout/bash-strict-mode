@@ -56,6 +56,7 @@ inputs = {
   ...
 };
 ```
+
 Make `strict-bash` and `strict-mode.bash` available to your derivations.
 
 ```nix
@@ -104,13 +105,14 @@ contents of this file change. By using `source`, all of your scripts are checked
 against a consistent strict mode.
 
 Now, to the behavior of this “strict mode”:
-* `set -e` / `-o errexit`: exit immediately if any command has a non-zero exit;
-* `set -u` / `-o nounset`: references to undefined variables are an error;
-* `set -o pipefail`: if a command that is not the end of the a pipeline (`|`)
-   fails, fail the whole pipeline;
-* `shopt -s inherit_errexit`: If a subshell (`$()`) fails, fail the calling
-   shell; and
-* `trap … ERR`: When an error occurs, report _where_ it occurred.
+
+- `set -e` / `-o errexit`: exit immediately if any command has a non-zero exit;
+- `set -u` / `-o nounset`: references to undefined variables are an error;
+- `set -o pipefail`: if a command that is not the end of the a pipeline (`|`)
+  fails, fail the whole pipeline;
+- `shopt -s inherit_errexit`: If a subshell (`$()`) fails, fail the calling
+  shell; and
+- `trap … ERR`: When an error occurs, report _where_ it occurred.
 
 ## FAQ
 
@@ -162,27 +164,29 @@ Combining the two is also an option, and should ensure that the disabling is sco
 
 There are other useful things to include in a script preface, but they
 aren’t included here for various reasons:
-* `IFS=$'\n\t'`: remove space as a field separator – often you want spaces
+
+- `IFS=$'\n\t'`: remove space as a field separator – often you want spaces
   preserved, and only newlines or tabs to be used to separate fields. This
   eliminates a common mistake, but it doesn’t actually make Bash catch any
   additional bad behavior, so it’s not part of this strict mode.
-* `LC_ALL=C`: remove locale-dependence from the script. This is usually what
+- `LC_ALL=C`: remove locale-dependence from the script. This is usually what
   you want, but if it were part of strict mode, you would lose the value
   before you could decide you want to keep it, so it’s not included here.
 
 ## resources
 
-* [Use Bash Strict Mode (Unless You Love Debugging)](http://redsymbol.net/articles/unofficial-bash-strict-mode/)
-* [Bash strict mode and why you should care](https://olivergondza.github.io/2019/10/01/bash-strict-mode.html)
-* [Fail Fast Bash Scripting](https://dougrichardson.us/notes/fail-fast-bash-scripting.html)
+- [Use Bash Strict Mode (Unless You Love Debugging)](http://redsymbol.net/articles/unofficial-bash-strict-mode/)
+- [Bash strict mode and why you should care](https://olivergondza.github.io/2019/10/01/bash-strict-mode.html)
+- [Fail Fast Bash Scripting](https://dougrichardson.us/notes/fail-fast-bash-scripting.html)
 
-
-[^1]: Sourcing a file relative to the script is difficult. The second line is a
+[^1]:
+    Sourcing a file relative to the script is difficult. The second line is a
     compact way to do it fairly reliably. See [How do I get the directory where
     a Bash script is located from within the script
     itself?](https://stackoverflow.com/questions/59895) for a lot of discussion
     on this topic.
 
-[^2]: The variable `SCRIPTDIR` above was chosen for affinity with the special
+[^2]:
+    The variable `SCRIPTDIR` above was chosen for affinity with the special
     value that `shellcheck` uses to indicate an import relative to the script
     (however, the name that you use does not have to match `shellcheck`).

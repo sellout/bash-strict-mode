@@ -32,7 +32,7 @@
           ["-e" "${path}/bin/strict-bash"]
           ++ (
             if newArgs == []
-            then [./default-builder.sh]
+            then [./default-builder.bash]
             else newArgs
           );
       });
