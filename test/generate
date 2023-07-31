@@ -20,7 +20,7 @@ for t in *; do
       cat "${test_path}.bash"
       echo
       cat "${old}"
-    } >"${new}"
+    } > "${new}"
     chmod +x "${new}"
   else
     new="${test_path}/${t}"
