@@ -46,19 +46,6 @@
         };
       };
 
-      homeConfigurations =
-        builtins.listToAttrs
-        (builtins.map
-          (inputs.flaky.lib.homeConfigurations.example
-            "bash-strict-mode"
-            inputs.self
-            [
-              ({pkgs, ...}: {
-                home.packages = [pkgs.bash-strict-mode];
-              })
-            ])
-          supportedSystems);
-
       lib = {
         ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided
         ## as a convenience, since this flake depends on
@@ -81,6 +68,15 @@
         shellchecked = pkgs:
           pkgs.callPackage inputs.shellcheck-nix-attributes {};
       };
+
+      homeConfigurations =
+        builtins.listToAttrs
+        (builtins.map
+          (inputs.flaky.lib.homeConfigurations.example
+            "bash-strict-mode"
+            inputs.self
+            [({pkgs, ...}: {home.packages = [pkgs.bash-strict-mode];})])
+          supportedSystems);
     }
     // inputs.flake-utils.lib.eachSystem supportedSystems (system: let
       pkgs = import inputs.nixpkgs {inherit system;};
