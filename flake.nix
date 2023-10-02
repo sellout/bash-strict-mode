@@ -102,8 +102,11 @@
       apps = {
         default = inputs.self.apps.${system}.strict-bash;
 
-        ## TODO: This line is too long. See kamadorueda/alejandra#368
-        strict-bash = "${inputs.self.packages.${system}.bash-strict-mode}/bin/strict-bash";
+        strict-bash = {
+          type = "app";
+          ## TODO: This line is too long. See kamadorueda/alejandra#368
+          program = "${inputs.self.packages.${system}.bash-strict-mode}/bin/strict-bash";
+        };
       };
 
       packages = {
