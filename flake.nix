@@ -129,7 +129,10 @@
               '';
             };
 
-            nativeBuildInputs = [pkgs.bats];
+            nativeBuildInputs = [
+              pkgs.bats
+              pkgs.makeWrapper
+            ];
 
             patchPhase = ''
               runHook prePatch
@@ -160,6 +163,11 @@
               runHook preInstall
               mkdir -p "$out"
               cp -r ./bin "$out/"
+              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
+                set +u
+                wrapProgram "$out/bin/strict-bash" \
+                  --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
+              )
               runHook postInstall
             '';
 
