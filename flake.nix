@@ -40,6 +40,19 @@
     supportedSystems = inputs.flake-utils.lib.defaultSystems;
   in
     {
+      schemas = {
+        inherit (inputs.project-manager.schemas)
+          overlays
+          # lib
+          homeConfigurations
+          apps
+          packages
+          devShells
+          projectConfigurations
+          checks
+          formatter;
+      };
+
       overlays = {
         default = final: prev: {
           inherit (inputs.self.packages.${final.system}) bash-strict-mode;
@@ -82,18 +95,6 @@
       pkgs = import inputs.nixpkgs {inherit system;};
 
       src = pkgs.lib.cleanSource ./.;
-
-      format = inputs.flaky.lib.format pkgs {
-        settings.formatter = let
-          shellFiles = ["*.bash" "bin/*" "test/*"];
-        in {
-          shellcheck = {
-            includes = shellFiles;
-            options = ["--external-sources"];
-          };
-          shfmt.includes = shellFiles;
-        };
-      };
     in {
       apps = {
         default = inputs.self.apps.${system}.strict-bash;
@@ -189,23 +190,40 @@
           }));
       };
 
-      devShells.default =
-        inputs.flaky.lib.devShells.default pkgs inputs.self [] "";
+      devShells = inputs.self.projectConfigurations.${system}.devShells;
 
-      checks.format = format.check inputs.self;
+      projectConfigurations = inputs.flaky.lib.projectConfigurations.default {
+        inherit pkgs;
+        inherit (inputs) self;
+      };
 
-      formatter = format.wrapper;
+      checks = inputs.self.projectConfigurations.${system}.checks;
+
+      formatter = inputs.self.projectConfigurations.${system}.formatter;
     });
 
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
 
     flaky = {
-      inputs.bash-strict-mode.follows = "";
+      inputs = {
+        bash-strict-mode.follows = "";
+        flake-utils.follows = "flake-utils";
+        project-manager.follows = "project-manager";
+      };
       url = "github:sellout/flaky";
     };
 
     nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
+
+    project-manager = {
+      inputs = {
+        bash-strict-mode.follows = "";
+        flake-utils.follows = "flake-utils";
+        nixpkgs.follows = "nixpkgs";
+      };
+      url = "github:sellout/project-manager";
+    };
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
