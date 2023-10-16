@@ -10,7 +10,8 @@
     extra-trusted-substituters = ["https://cache.garnix.io"];
     ## Isolate the build.
     registries = false;
-    sandbox = true;
+    ## To allow _noChroot checks to run.
+    sandbox = false;
   };
 
   outputs = inputs: let
@@ -32,7 +33,7 @@
           ["-e" "${path}/bin/strict-bash"]
           ++ (
             if newArgs == []
-            then [./default-builder.bash]
+            then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
             else newArgs
           );
       });
@@ -41,16 +42,17 @@
   in
     {
       schemas = {
-        inherit (inputs.project-manager.schemas)
+        inherit
+          (inputs.project-manager.schemas)
           overlays
-          # lib
           homeConfigurations
           apps
           packages
           devShells
           projectConfigurations
           checks
-          formatter;
+          formatter
+          ;
       };
 
       overlays = {

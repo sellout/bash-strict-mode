@@ -35,6 +35,19 @@
         shfmt.includes = shellFiles;
       };
     };
+    vale = {
+      enable = true;
+      coreSettings.Vocab = "base";
+      excludes = [
+        "*.bash"
+        "*.bats"
+        "./.github/settings.yml"
+        "./.github/workflows/flakehub-publish.yml"
+        "./bin/strict-bash"
+        "./test/generate"
+        "./test/is-on-path"
+      ];
+    };
   };
 
   services = {
@@ -50,7 +63,7 @@
       enable = true;
       settings = {
         repository.topics = ["bash" "development" "nix-flakes"];
-        ## FIXME: Shouldn’t need `mkForce` here (or to duplicated the base
+        ## FIXME: Shouldn’t need `mkForce` here (or to duplicate the base
         ##        contexts). Need to improve module merging.
         branches.main.protection.required_status_checks.contexts = lib.mkForce
           (lib.concatMap flaky.lib.garnixChecks [
