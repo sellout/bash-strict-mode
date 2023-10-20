@@ -43,7 +43,7 @@
     {
       schemas = {
         inherit
-          (inputs.project-manager.schemas)
+          (inputs.flaky.schemas)
           overlays
           homeConfigurations
           apps
@@ -55,10 +55,8 @@
           ;
       };
 
-      overlays = {
-        default = final: prev: {
-          inherit (inputs.self.packages.${final.system}) bash-strict-mode;
-        };
+      overlays.default = final: prev: {
+        inherit (inputs.self.packages.${final.system}) bash-strict-mode;
       };
 
       lib = {
@@ -211,21 +209,11 @@
       inputs = {
         bash-strict-mode.follows = "";
         flake-utils.follows = "flake-utils";
-        project-manager.follows = "project-manager";
       };
       url = "github:sellout/flaky";
     };
 
     nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
-
-    project-manager = {
-      inputs = {
-        bash-strict-mode.follows = "";
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-      };
-      url = "github:sellout/project-manager";
-    };
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
