@@ -137,10 +137,7 @@
 
             patchPhase = ''
               runHook prePatch
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test
-              )
+              patchShebangs ./test
               runHook postPatch
             '';
 
@@ -150,10 +147,7 @@
               runHook preCheck
               bats --print-output-on-failure ./test/all-tests.bats
               ./test/generate strict-mode
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test/strict-mode
-              )
+              patchShebangs ./test/strict-mode
               bats --print-output-on-failure ./test/strict-mode/all-tests.bats
               runHook postCheck
             '';
@@ -164,11 +158,8 @@
               runHook preInstall
               mkdir -p "$out"
               cp -r ./bin "$out/"
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                wrapProgram "$out/bin/strict-bash" \
-                  --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
-              )
+              wrapProgram "$out/bin/strict-bash" \
+                --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
               runHook postInstall
             '';
 
@@ -178,10 +169,7 @@
               runHook preInstallCheck
               ./test/generate strict-bash
               export PATH="$out/bin:$PATH"
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test/strict-bash
-              )
+              patchShebangs ./test/strict-bash
               # should find things in `PATH`
               ./test/is-on-path
               bats --print-output-on-failure ./test/strict-bash/all-tests.bats
