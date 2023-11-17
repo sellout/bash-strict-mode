@@ -178,15 +178,13 @@
           }));
       };
 
-      devShells = inputs.self.projectConfigurations.${system}.devShells;
-
       projectConfigurations = inputs.flaky.lib.projectConfigurations.default {
         inherit pkgs;
         inherit (inputs) self;
       };
 
+      devShells = inputs.self.projectConfigurations.${system}.devShells;
       checks = inputs.self.projectConfigurations.${system}.checks;
-
       formatter = inputs.self.projectConfigurations.${system}.formatter;
     });
 
