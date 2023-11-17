@@ -20,7 +20,7 @@
     ## that isn’t a Bash script, it’s unlikely to have any effect.
     strictBuilder = pkgs: path: drv:
       drv.overrideAttrs (old: {
-        PATH = "${pkgs.bash}/bin:${pkgs.coreutils}/bin:${old.PATH or ""}";
+        builder = "{path}/bin/strict-bash";
         args = let
           newArgs =
             (
@@ -30,12 +30,9 @@
             )
             ++ (old.args or []);
         in
-          ["-e" "${path}/bin/strict-bash"]
-          ++ (
-            if newArgs == []
-            then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
-            else newArgs
-          );
+          if newArgs == []
+          then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
+          else newArgs;
       });
 
     supportedSystems = inputs.flake-utils.lib.defaultSystems;
@@ -137,10 +134,7 @@
 
             patchPhase = ''
               runHook prePatch
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test
-              )
+              patchShebangs ./test
               runHook postPatch
             '';
 
@@ -150,10 +144,7 @@
               runHook preCheck
               bats --print-output-on-failure ./test/all-tests.bats
               ./test/generate strict-mode
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test/strict-mode
-              )
+              patchShebangs ./test/strict-mode
               bats --print-output-on-failure ./test/strict-mode/all-tests.bats
               runHook postCheck
             '';
@@ -164,11 +155,8 @@
               runHook preInstall
               mkdir -p "$out"
               cp -r ./bin "$out/"
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                wrapProgram "$out/bin/strict-bash" \
-                  --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
-              )
+              wrapProgram "$out/bin/strict-bash" \
+                --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
               runHook postInstall
             '';
 
@@ -178,10 +166,7 @@
               runHook preInstallCheck
               ./test/generate strict-bash
               export PATH="$out/bin:$PATH"
-              ( # Remove +u (and subshell) once NixOS/nixpkgs#207203 is merged
-                set +u
-                patchShebangs ./test/strict-bash
-              )
+              patchShebangs ./test/strict-bash
               # should find things in `PATH`
               ./test/is-on-path
               bats --print-output-on-failure ./test/strict-bash/all-tests.bats
@@ -190,15 +175,13 @@
           }));
       };
 
-      devShells = inputs.self.projectConfigurations.${system}.devShells;
-
       projectConfigurations = inputs.flaky.lib.projectConfigurations.default {
         inherit pkgs;
         inherit (inputs) self;
       };
 
+      devShells = inputs.self.projectConfigurations.${system}.devShells;
       checks = inputs.self.projectConfigurations.${system}.checks;
-
       formatter = inputs.self.projectConfigurations.${system}.formatter;
     });
 
