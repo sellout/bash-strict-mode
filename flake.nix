@@ -20,7 +20,7 @@
     ## that isn’t a Bash script, it’s unlikely to have any effect.
     strictBuilder = pkgs: path: drv:
       drv.overrideAttrs (old: {
-        PATH = "${pkgs.bash}/bin:${pkgs.coreutils}/bin:${old.PATH or ""}";
+        builder = "{path}/bin/strict-bash";
         args = let
           newArgs =
             (
@@ -30,12 +30,9 @@
             )
             ++ (old.args or []);
         in
-          ["-e" "${path}/bin/strict-bash"]
-          ++ (
-            if newArgs == []
-            then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
-            else newArgs
-          );
+          if newArgs == []
+          then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
+          else newArgs;
       });
 
     supportedSystems = inputs.flake-utils.lib.defaultSystems;
