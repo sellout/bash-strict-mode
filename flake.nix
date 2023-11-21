@@ -196,7 +196,7 @@
       url = "github:sellout/flaky";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
