@@ -37,7 +37,6 @@
     };
     vale = {
       enable = true;
-      coreSettings.Vocab = "base";
       excludes = [
         "*.bash"
         "*.bats"
