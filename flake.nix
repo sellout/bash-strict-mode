@@ -14,7 +14,13 @@
     sandbox = false;
   };
 
-  outputs = inputs: let
+  outputs = {
+    flake-utils,
+    flaky,
+    nixpkgs,
+    self,
+    shellcheck-nix-attributes,
+  }: let
     ## Uses `strict-bash` instead of `bash` for the derivation builder. This
     ## _should_ work for any derivation, but if you’ve already set a builder
     ## that isn’t a Bash script, it’s unlikely to have any effect.
@@ -31,16 +37,16 @@
             ++ (old.args or []);
         in
           if newArgs == []
-          then ["${inputs.nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
+          then ["${nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
           else newArgs;
       });
 
-    supportedSystems = inputs.flake-utils.lib.defaultSystems;
+    supportedSystems = flake-utils.lib.defaultSystems;
   in
     {
       schemas = {
         inherit
-          (inputs.flaky.schemas)
+          (flaky.schemas)
           overlays
           homeConfigurations
           apps
@@ -53,22 +59,22 @@
       };
 
       overlays.default = final: prev: {
-        inherit (inputs.self.packages.${final.system}) bash-strict-mode;
+        inherit (self.packages.${final.system}) bash-strict-mode;
       };
 
       lib = {
-        ## Similar to `inputs.self.lib.drv`, but also runs shellcheck (provided
+        ## Similar to `self.lib.drv`, but also runs shellcheck (provided
         ## as a convenience, since this flake depends on
         ## shellcheck-nix-attributes already).
         checkedDrv = pkgs: drv:
-          inputs.self.lib.shellchecked pkgs (inputs.self.lib.drv pkgs drv);
+          self.lib.shellchecked pkgs (self.lib.drv pkgs drv);
 
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
         drv = pkgs:
           strictBuilder
           pkgs
-          inputs.self.packages.${pkgs.system}.bash-strict-mode;
+          self.packages.${pkgs.system}.bash-strict-mode;
 
         ## Runs shellcheck on the snippets in a derivation.
         ##
@@ -76,41 +82,41 @@
         ##     doesn’t yet have a flake. This will likely go away at some point
         ##     after that changes.
         shellchecked = pkgs:
-          pkgs.callPackage inputs.shellcheck-nix-attributes {};
+          pkgs.callPackage shellcheck-nix-attributes {};
       };
 
       homeConfigurations =
         builtins.listToAttrs
         (builtins.map
-          (inputs.flaky.lib.homeConfigurations.example
+          (flaky.lib.homeConfigurations.example
             "bash-strict-mode"
-            inputs.self
+            self
             [({pkgs, ...}: {home.packages = [pkgs.bash-strict-mode];})])
           supportedSystems);
     }
-    // inputs.flake-utils.lib.eachSystem supportedSystems (system: let
-      pkgs = import inputs.nixpkgs {inherit system;};
+    // flake-utils.lib.eachSystem supportedSystems (system: let
+      pkgs = import nixpkgs {inherit system;};
 
       src = pkgs.lib.cleanSource ./.;
     in {
       apps = {
-        default = inputs.self.apps.${system}.strict-bash;
+        default = self.apps.${system}.strict-bash;
 
         strict-bash = {
           type = "app";
           ## TODO: This line is too long. See kamadorueda/alejandra#368
-          program = "${inputs.self.packages.${system}.bash-strict-mode}/bin/strict-bash";
+          program = "${self.packages.${system}.bash-strict-mode}/bin/strict-bash";
         };
       };
 
       packages = {
-        default = inputs.self.packages.${system}.bash-strict-mode;
+        default = self.packages.${system}.bash-strict-mode;
 
         ## NB: This can’t use `self.lib.checkedDrv` because that creates a
         ##     cycle. So it uses `strictBuilder` directly, then calls
         ##    `self.lib.shellchecked`.
         bash-strict-mode =
-          inputs.self.lib.shellchecked pkgs
+          self.lib.shellchecked pkgs
           (strictBuilder pkgs ./. (pkgs.stdenv.mkDerivation {
             inherit src;
 
@@ -175,14 +181,13 @@
           }));
       };
 
-      projectConfigurations = inputs.flaky.lib.projectConfigurations.default {
-        inherit pkgs;
-        inherit (inputs) self;
+      projectConfigurations = flaky.lib.projectConfigurations.default {
+        inherit pkgs self;
       };
 
-      devShells = inputs.self.projectConfigurations.${system}.devShells;
-      checks = inputs.self.projectConfigurations.${system}.checks;
-      formatter = inputs.self.projectConfigurations.${system}.formatter;
+      devShells = self.projectConfigurations.${system}.devShells;
+      checks = self.projectConfigurations.${system}.checks;
+      formatter = self.projectConfigurations.${system}.formatter;
     });
 
   inputs = {
@@ -192,11 +197,12 @@
       inputs = {
         bash-strict-mode.follows = "";
         flake-utils.follows = "flake-utils";
+        nixpkgs.follows = "nixpkgs";
       };
       url = "github:sellout/flaky";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
