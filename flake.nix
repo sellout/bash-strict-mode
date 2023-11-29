@@ -21,24 +21,32 @@
     self,
     shellcheck-nix-attributes,
   }: let
-    ## Uses `strict-bash` instead of `bash` for the derivation builder. This
-    ## _should_ work for any derivation, but if you’ve already set a builder
-    ## that isn’t a Bash script, it’s unlikely to have any effect.
-    strictBuilder = pkgs: path: drv:
+    strictBuilder = command: drv:
       drv.overrideAttrs (old: {
-        builder = "{path}/bin/strict-bash";
-        args = let
-          newArgs =
-            (
-              if (old.builder or null) == null
-              then []
-              else ["-e" old.builder]
-            )
-            ++ (old.args or []);
-        in
-          if newArgs == []
-          then ["${nixpkgs}/pkgs/stdenv/generic/default-builder.sh"]
-          else newArgs;
+        ## NB: Overriding the builder is complicated.
+        ##   • if you override `builder` directly, then the default `args` never
+        ##     get set
+        ##   • if you overide both `builder` and `args`, then they seem to get
+        ##     reset 🤷
+        ##
+        ##     So, instead we just set the command we want to run as an argument
+        ##     to be execed.
+        args = [command ./default-builder.bash];
+
+        ## The default `fixupPhase` calls `patchShebangs`, which currently doesn’t
+        ## satisfy strict mode. These disable `nounset` for the duration of the
+        ## `fixupPhase`.
+        preFixup =
+          old.preFixup
+          or ""
+          + ''
+            set +u
+          '';
+        postFixup =
+          ''
+            set -u
+          ''
+          + old.postFixup or "";
       });
 
     supportedSystems = flake-utils.lib.defaultSystems;
@@ -47,14 +55,13 @@
       schemas = {
         inherit
           (flaky.schemas)
+          schemas
           overlays
-          homeConfigurations
-          apps
+          lib
           packages
-          devShells
           projectConfigurations
+          devShells
           checks
-          formatter
           ;
       };
 
@@ -71,10 +78,7 @@
 
         ## This takes a derivation and ensures its shell snippets are run in
         ## strict mode.
-        drv = pkgs:
-          strictBuilder
-          pkgs
-          self.packages.${pkgs.system}.bash-strict-mode;
+        drv = pkgs: strictBuilder self.apps.${pkgs.system}.strict-bash.program;
 
         ## Runs shellcheck on the snippets in a derivation.
         ##
@@ -117,7 +121,7 @@
         ##    `self.lib.shellchecked`.
         bash-strict-mode =
           self.lib.shellchecked pkgs
-          (strictBuilder pkgs ./. (pkgs.stdenv.mkDerivation {
+          (strictBuilder "strict-bash" (pkgs.stdenv.mkDerivation {
             inherit src;
 
             pname = "bash-strict-mode";
@@ -133,6 +137,14 @@
               '';
             };
 
+            ## This is needed so that we can run `strict-bash` as our builder
+            ## before it’s installed.
+            PATH = builtins.concatStringsSep ":" [
+              ./bin
+              "${pkgs.bash}/bin"
+              "${pkgs.coreutils}/bin"
+            ];
+
             nativeBuildInputs = [
               pkgs.bats
               pkgs.makeWrapper
@@ -140,7 +152,7 @@
 
             patchPhase = ''
               runHook prePatch
-              patchShebangs ./test
+              (set +u; patchShebangs ./test)
               runHook postPatch
             '';
 
@@ -150,13 +162,11 @@
               runHook preCheck
               bats --print-output-on-failure ./test/all-tests.bats
               ./test/generate strict-mode
-              patchShebangs ./test/strict-mode
+              (set +u; patchShebangs ./test/strict-mode)
               bats --print-output-on-failure ./test/strict-mode/all-tests.bats
               runHook postCheck
             '';
 
-            ## This isn’t executable, but putting it in `bin/` makes it possible
-            ## for `source` to find it without a path.
             installPhase = ''
               runHook preInstall
               mkdir -p "$out"
@@ -171,19 +181,20 @@
             installCheckPhase = ''
               runHook preInstallCheck
               ./test/generate strict-bash
+              # should not find things in `PATH`
+              if ./test/is-on-path; then exit 124; fi
               export PATH="$out/bin:$PATH"
-              patchShebangs ./test/strict-bash
               # should find things in `PATH`
               ./test/is-on-path
+              (set +u; patchShebangs ./test/strict-bash)
               bats --print-output-on-failure ./test/strict-bash/all-tests.bats
               runHook postInstallCheck
             '';
           }));
       };
 
-      projectConfigurations = flaky.lib.projectConfigurations.default {
-        inherit pkgs self;
-      };
+      projectConfigurations =
+        flaky.lib.projectConfigurations.default {inherit pkgs self;};
 
       devShells = self.projectConfigurations.${system}.devShells;
       checks = self.projectConfigurations.${system}.checks;
