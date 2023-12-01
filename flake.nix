@@ -172,7 +172,10 @@
               mkdir -p "$out"
               cp -r ./bin "$out/"
               wrapProgram "$out/bin/strict-bash" \
-                --prefix PATH : ${pkgs.lib.makeBinPath [pkgs.bashInteractive]}
+                --prefix PATH : ${pkgs.lib.makeBinPath [
+                pkgs.bashInteractive
+                pkgs.coreutils
+              ]}
               runHook postInstall
             '';
 
