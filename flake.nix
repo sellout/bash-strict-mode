@@ -21,6 +21,8 @@
     self,
     shellcheck-nix-attributes,
   }: let
+    sys = flake-utils.lib.system;
+
     strictBuilder = command: drv:
       drv.overrideAttrs (old: {
         ## NB: Overriding the builder is complicated.
@@ -49,7 +51,20 @@
           + old.postFixup or "";
       });
 
-    supportedSystems = flake-utils.lib.defaultSystems;
+    supportedSystems =
+      ## This ensures that we explicitly list all the platforms we support while
+      ## protecting against changes in `defaultSystems` (removing a system from
+      ## `defaultSystems` shouldn’t remove it from here, but one being added
+      ## should alert us to any failures.
+      nixpkgs.lib.unique
+      (flake-utils.lib.defaultSystems
+        ++ [
+          sys.aarch64-darwin
+          sys.aarch64-linux
+          sys.i686-linux
+          sys.x86_64-darwin
+          sys.x86_64-linux
+        ]);
   in
     {
       schemas = {
@@ -99,7 +114,19 @@
           supportedSystems);
     }
     // flake-utils.lib.eachSystem supportedSystems (system: let
-      pkgs = import nixpkgs {inherit system;};
+      pkgs = import nixpkgs {
+        inherit system;
+        ## NB: Pandoc currently fails a couple tests on i686 in Nixpkgs 23.11.
+        overlays =
+          nixpkgs.lib.optional (system == sys.i686-linux)
+          (final: prev: {
+            haskellPackages = prev.haskellPackages.extend (hfinal: hprev: {
+              pandoc_3_1_9 = hprev.pandoc_3_1_9.overrideAttrs (old: {
+                doCheck = false;
+              });
+            });
+          });
+      };
 
       src = pkgs.lib.cleanSource ./.;
     in {
