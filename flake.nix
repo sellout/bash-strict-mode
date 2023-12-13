@@ -10,8 +10,7 @@
     extra-trusted-substituters = ["https://cache.garnix.io"];
     ## Isolate the build.
     registries = false;
-    ## To allow _noChroot checks to run.
-    sandbox = false;
+    sandbox = "relaxed";
   };
 
   outputs = {
@@ -226,7 +225,20 @@
       projectConfigurations =
         flaky.lib.projectConfigurations.default {inherit pkgs self;};
 
-      devShells = self.projectConfigurations.${system}.devShells;
+      devShells =
+        self.projectConfigurations.${system}.devShells
+        // {
+          default =
+            self.devShells.${system}.project-manager.overrideAttrs
+            (old: {
+              inputsFrom =
+                old.inputsFrom
+                or []
+                ++ builtins.attrValues
+                self.projectConfigurations.${system}.sandboxedChecks
+                ++ builtins.attrValues self.packages.${system};
+            });
+        };
       checks = self.projectConfigurations.${system}.checks;
       formatter = self.projectConfigurations.${system}.formatter;
     });
