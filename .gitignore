@@ -4,4 +4,6 @@
 !/.cache/vale/Vocab/
 /.cache/vale/Vocab/*
 !/.cache/vale/Vocab/bash-strict-mode/
+/.local/state/project-manager/
+/.local/state/nix/profiles/
 /.cache/direnv/
