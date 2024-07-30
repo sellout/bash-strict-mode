@@ -50,20 +50,7 @@
           + old.postFixup or "";
       });
 
-    supportedSystems =
-      ## This ensures that we explicitly list all the platforms we support while
-      ## protecting against changes in `defaultSystems` (removing a system from
-      ## `defaultSystems` shouldn’t remove it from here, but one being added
-      ## should alert us to any failures.
-      nixpkgs.lib.unique
-      (flake-utils.lib.defaultSystems
-        ++ [
-          sys.aarch64-darwin
-          sys.aarch64-linux
-          sys.i686-linux
-          sys.x86_64-darwin
-          sys.x86_64-linux
-        ]);
+    supportedSystems = flaky.lib.defaultSystems;
   in
     {
       schemas = {
@@ -80,23 +67,7 @@
       };
 
       overlays = {
-        default =
-          nixpkgs.lib.composeExtensions
-          self.overlays.dependencies
-          self.overlays.local;
-
-        dependencies = final: prev: {
-          haskellPackages = prev.haskellPackages.extend (hfinal: hprev:
-            if final.system == sys.i686-linux
-            then {
-              ## NB: Pandoc currently fails a couple tests on i686 in Nixpkgs
-              ##     23.11.
-              pandoc_3_1_9 = hprev.pandoc_3_1_9.overrideAttrs (old: {
-                doCheck = false;
-              });
-            }
-            else {});
-        };
+        default = self.overlays.local;
 
         local = final: prev: {
           inherit (self.packages.${final.system}) bash-strict-mode;
@@ -126,16 +97,14 @@
       homeConfigurations =
         builtins.listToAttrs
         (builtins.map
-          (flaky.lib.homeConfigurations.example
-            "bash-strict-mode"
-            self
+          (flaky.lib.homeConfigurations.example self
             [({pkgs, ...}: {home.packages = [pkgs.bash-strict-mode];})])
           supportedSystems);
     }
     // flake-utils.lib.eachSystem supportedSystems (system: let
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [self.overlays.dependencies];
+        overlays = [flaky.overlays.dependencies];
       };
 
       src = pkgs.lib.cleanSource ./.;
@@ -255,18 +224,14 @@
     });
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-
+    ## Flaky should generally be the source of truth for its inputs.
     flaky = {
-      inputs = {
-        bash-strict-mode.follows = "";
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-      };
+      inputs.bash-strict-mode.follows = "";
       url = "github:sellout/flaky";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
+    flake-utils.follows = "flaky/flake-utils";
+    nixpkgs.follows = "flaky/nixpkgs";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
