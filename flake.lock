@@ -37,13 +37,9 @@
     "flaky": {
       "inputs": {
         "bash-strict-mode": [],
-        "flake-utils": [
-          "flake-utils"
-        ],
+        "flake-utils": "flake-utils",
         "home-manager": "home-manager",
-        "nixpkgs": [
-          "nixpkgs"
-        ],
+        "nixpkgs": "nixpkgs",
         "project-manager": "project-manager"
       },
       "locked": {
@@ -84,16 +80,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1719755592,
-        "narHash": "sha256-aRElgc4fmNtzn2HKlse4ESGzO7lrTE+8vk/vbVLfu+w=",
+        "lastModified": 1722272837,
+        "narHash": "sha256-iHO942tXSkiZ0ZhWkfqCvqo9/67+S6WYfphXSJogEmM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "8054da3570d226d9c3f343eb28787fb7564841d5",
+        "rev": "89526a7d969e38fe8c30253170d44d0f131882de",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "release-23.11",
+        "ref": "release-24.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -180,11 +176,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1720535198,
-        "narHash": "sha256-zwVvxrdIzralnSbcpghA92tWu2DV2lwv89xZc8MTrbg=",
+        "lastModified": 1719755592,
+        "narHash": "sha256-aRElgc4fmNtzn2HKlse4ESGzO7lrTE+8vk/vbVLfu+w=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "205fd4226592cc83fd4c0885a3e4c9c400efabb5",
+        "rev": "8054da3570d226d9c3f343eb28787fb7564841d5",
         "type": "github"
       },
       "original": {
@@ -208,7 +204,7 @@
         "flaky": [
           "flaky"
         ],
-        "nixpkgs": "nixpkgs",
+        "nixpkgs": "nixpkgs_2",
         "nixpkgs-22_11": "nixpkgs-22_11",
         "nixpkgs-23_05": "nixpkgs-23_05",
         "nixpkgs-23_11": "nixpkgs-23_11",
@@ -232,9 +228,15 @@
     },
     "root": {
       "inputs": {
-        "flake-utils": "flake-utils",
+        "flake-utils": [
+          "flaky",
+          "flake-utils"
+        ],
         "flaky": "flaky",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": [
+          "flaky",
+          "nixpkgs"
+        ],
         "shellcheck-nix-attributes": "shellcheck-nix-attributes"
       }
     },

@@ -255,18 +255,14 @@
     });
 
   inputs = {
-    flake-utils.url = "github:numtide/flake-utils";
-
+    ## Flaky should generally be the source of truth for its inputs.
     flaky = {
-      inputs = {
-        bash-strict-mode.follows = "";
-        flake-utils.follows = "flake-utils";
-        nixpkgs.follows = "nixpkgs";
-      };
+      inputs.bash-strict-mode.follows = "";
       url = "github:sellout/flaky";
     };
 
-    nixpkgs.url = "github:NixOS/nixpkgs/release-23.11";
+    flake-utils.follows = "flaky/flake-utils";
+    nixpkgs.follows = "flaky/nixpkgs";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
