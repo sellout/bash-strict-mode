@@ -67,23 +67,7 @@
       };
 
       overlays = {
-        default =
-          nixpkgs.lib.composeExtensions
-          self.overlays.dependencies
-          self.overlays.local;
-
-        dependencies = final: prev: {
-          haskellPackages = prev.haskellPackages.extend (hfinal: hprev:
-            if final.system == sys.i686-linux
-            then {
-              ## NB: Pandoc currently fails a couple tests on i686 in Nixpkgs
-              ##     23.11.
-              pandoc_3_1_9 = hprev.pandoc_3_1_9.overrideAttrs (old: {
-                doCheck = false;
-              });
-            }
-            else {});
-        };
+        default = self.overlays.local;
 
         local = final: prev: {
           inherit (self.packages.${final.system}) bash-strict-mode;
@@ -120,7 +104,7 @@
     // flake-utils.lib.eachSystem supportedSystems (system: let
       pkgs = import nixpkgs {
         inherit system;
-        overlays = [self.overlays.dependencies];
+        overlays = [flaky.overlays.dependencies];
       };
 
       src = pkgs.lib.cleanSource ./.;
