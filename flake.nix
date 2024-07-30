@@ -50,20 +50,7 @@
           + old.postFixup or "";
       });
 
-    supportedSystems =
-      ## This ensures that we explicitly list all the platforms we support while
-      ## protecting against changes in `defaultSystems` (removing a system from
-      ## `defaultSystems` shouldn’t remove it from here, but one being added
-      ## should alert us to any failures.
-      nixpkgs.lib.unique
-      (flake-utils.lib.defaultSystems
-        ++ [
-          sys.aarch64-darwin
-          sys.aarch64-linux
-          sys.i686-linux
-          sys.x86_64-darwin
-          sys.x86_64-linux
-        ]);
+    supportedSystems = flaky.lib.defaultSystems;
   in
     {
       schemas = {
@@ -126,9 +113,7 @@
       homeConfigurations =
         builtins.listToAttrs
         (builtins.map
-          (flaky.lib.homeConfigurations.example
-            "bash-strict-mode"
-            self
+          (flaky.lib.homeConfigurations.example self
             [({pkgs, ...}: {home.packages = [pkgs.bash-strict-mode];})])
           supportedSystems);
     }

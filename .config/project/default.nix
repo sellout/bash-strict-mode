@@ -1,4 +1,10 @@
-{config, flaky, lib, ...}: {
+{
+  config,
+  flaky,
+  lib,
+  supportedSystems,
+  ...
+}: {
   project = {
     name = "bash-strict-mode";
     summary = "Write better shell scripts";
@@ -55,7 +61,7 @@
       enable = true;
       builds.exclude = [
         # TODO: Remove once garnix-io/garnix#285 is fixed.
-        "homeConfigurations.x86_64-darwin-${config.project.name}-example"
+        "homeConfigurations.x86_64-darwin-example"
       ];
     };
     github = {
@@ -64,15 +70,16 @@
         repository.topics = ["bash" "development" "nix-flakes"];
         ## FIXME: Shouldn’t need `mkForce` here (or to duplicate the base
         ##        contexts). Need to improve module merging.
-        branches.main.protection.required_status_checks.contexts = lib.mkForce
-          (lib.concatMap flaky.lib.garnixChecks [
-            (sys: "homeConfig ${sys}-${config.project.name}-example")
-            (sys: "package ${config.project.name} [${sys}]")
-            (sys: "package default [${sys}]")
+        branches.main.protection.required_status_checks.contexts =
+          lib.mkForce
+          (flaky.lib.forGarnixSystems supportedSystems (sys: [
+            "homeConfig ${sys}-example"
+            "package ${config.project.name} [${sys}]"
+            "package default [${sys}]"
             ## FIXME: These are duplicated from the base config
-            (sys: "check formatter [${sys}]")
-            (sys: "devShell default [${sys}]")
-          ]);
+            "check formatter [${sys}]"
+            "devShell default [${sys}]"
+          ]));
       };
     };
     renovate.enable = true;
