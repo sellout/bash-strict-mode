@@ -44,10 +44,6 @@
     vale = {
       enable = true;
       excludes = [
-        "*.bash"
-        "*.bats"
-        "./.github/settings.yml"
-        "./.github/workflows/flakehub-publish.yml"
         "./bin/strict-bash"
         "./test/generate"
         "./test/is-on-path"
@@ -57,17 +53,10 @@
 
   services = {
     flakehub.enable = true;
-    garnix = {
-      enable = true;
-      builds.exclude = [
-        # TODO: Remove once garnix-io/garnix#285 is fixed.
-        "homeConfigurations.x86_64-darwin-example"
-      ];
-    };
+    garnix.enable = true;
     github = {
       enable = true;
       settings = {
-        repository.topics = ["bash" "development" "nix-flakes"];
         ## FIXME: Shouldn’t need `mkForce` here (or to duplicate the base
         ##        contexts). Need to improve module merging.
         branches.main.protection.required_status_checks.contexts =
@@ -80,6 +69,7 @@
             "check formatter [${sys}]"
             "devShell default [${sys}]"
           ]));
+        repository.topics = ["bash" "development" "nix-flakes"];
       };
     };
     renovate.enable = true;

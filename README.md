@@ -1,6 +1,6 @@
 # [Bash](https://www.gnu.org/software/bash/) strict mode
 
-[![built with garnix](https://img.shields.io/endpoint?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2F{{project.name}})](https://garnix.io)
+[![built with garnix](https://img.shields.io/endpoint?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Fbash-strict-mode)](https://garnix.io/repo/sellout/bash-strict-mode)
 
 Making shell scripts more robust.
 
@@ -82,11 +82,13 @@ Use `strict-bash` instead of `bash` for your derivations’ builds.
 ```nix
 outputs = {self, bash-strict-mode, flake-utils, nixpkgs, ...}:
   flake-utils.lib.eachDefaultSystem (system: let
-    pkgs = import nixpkgs {inherit system;};
+    pkgs = nixpkgs.legacyPackages.${system}.appendOverlays [
+      bash-strict-mode.overlays.default
+    ];
   in {
     ### Apply strict-bash and shellcheck to all the shell snippets in the
     ### derivation’s build.
-    packages.default = bash-strict-mode.lib.checkedDrv pkgs (mkDerivation {
+    packages.default = pkgs.checkedDrv (mkDerivation {
       ...
     });
 };
@@ -95,7 +97,7 @@ outputs = {self, bash-strict-mode, flake-utils, nixpkgs, ...}:
 Use `strict-bash` locally, from the upstream flake.
 
 ```bash
-$ nix run github:sellout/bash-strict-mode#strict-bash someScript
+$ nix run github:sellout/bash-strict-mode someScript
 ```
 
 ## explanation
