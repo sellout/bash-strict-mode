@@ -19,38 +19,18 @@
     nixpkgs,
     self,
     shellcheck-nix-attributes,
+    systems,
   }: let
-    sys = flake-utils.lib.system;
+    supportedSystems = import systems;
 
-    strictBuilder = command: drv:
-      drv.overrideAttrs (old: {
-        ## NB: Overriding the builder is complicated.
-        ##   • if you override `builder` directly, then the default `args` never
-        ##     get set
-        ##   • if you overide both `builder` and `args`, then they seem to get
-        ##     reset 🤷
-        ##
-        ##     So, instead we just set the command we want to run as an argument
-        ##     to be execed.
-        args = [command ./default-builder.bash];
+    localPkgsLib = pkgs:
+      import ./nix/pkgsLib {
+        inherit pkgs shellcheck-nix-attributes;
+        inherit (nixpkgs) lib;
+      };
 
-        ## The default `fixupPhase` calls `patchShebangs`, which currently doesn’t
-        ## satisfy strict mode. These disable `nounset` for the duration of the
-        ## `fixupPhase`.
-        preFixup =
-          old.preFixup
-          or ""
-          + ''
-            set +u
-          '';
-        postFixup =
-          ''
-            set -u
-          ''
-          + old.postFixup or "";
-      });
-
-    supportedSystems = flaky.lib.defaultSystems;
+    localPackages = pkgs:
+      import ./nix/packages {inherit pkgs shellcheck-nix-attributes;};
   in
     {
       schemas = {
@@ -63,35 +43,17 @@
           projectConfigurations
           devShells
           checks
+          formatter
           ;
       };
 
       overlays = {
-        default = self.overlays.local;
+        default =
+          nixpkgs.lib.composeExtensions
+          flaky.overlays.default
+          self.overlays.local;
 
-        local = final: prev: {
-          inherit (self.packages.${final.system}) bash-strict-mode;
-        };
-      };
-
-      lib = {
-        ## Similar to `self.lib.drv`, but also runs shellcheck (provided
-        ## as a convenience, since this flake depends on
-        ## shellcheck-nix-attributes already).
-        checkedDrv = pkgs: drv:
-          self.lib.shellchecked pkgs (self.lib.drv pkgs drv);
-
-        ## This takes a derivation and ensures its shell snippets are run in
-        ## strict mode.
-        drv = pkgs: strictBuilder self.apps.${pkgs.system}.strict-bash.program;
-
-        ## Runs shellcheck on the snippets in a derivation.
-        ##
-        ## NB: Provided as a convenience, since shellcheck-nix-attributes
-        ##     doesn’t yet have a flake. This will likely go away at some point
-        ##     after that changes.
-        shellchecked = pkgs:
-          pkgs.callPackage shellcheck-nix-attributes {};
+        local = final: prev: localPkgsLib final // localPackages final;
       };
 
       homeConfigurations =
@@ -102,108 +64,26 @@
           supportedSystems);
     }
     // flake-utils.lib.eachSystem supportedSystems (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [flaky.overlays.dependencies];
-      };
-
-      src = pkgs.lib.cleanSource ./.;
+      pkgs = nixpkgs.legacyPackages.${system}.appendOverlays [
+        flaky.overlays.default
+      ];
     in {
       apps = {
         default = self.apps.${system}.strict-bash;
 
-        strict-bash = {
-          type = "app";
-          ## TODO: This line is too long. See kamadorueda/alejandra#368
-          program = "${self.packages.${system}.bash-strict-mode}/bin/strict-bash";
+        strict-bash = flake-utils.lib.mkApp {
+          drv = self.packages.${system}.bash-strict-mode;
         };
       };
 
-      packages = {
-        default = self.packages.${system}.bash-strict-mode;
+      pkgsLib = localPkgsLib pkgs;
 
-        ## NB: This can’t use `self.lib.checkedDrv` because that creates a
-        ##     cycle. So it uses `strictBuilder` directly, then calls
-        ##    `self.lib.shellchecked`.
-        bash-strict-mode =
-          self.lib.shellchecked pkgs
-          (strictBuilder "strict-bash" (pkgs.stdenv.mkDerivation {
-            inherit src;
-
-            pname = "bash-strict-mode";
-            version = "0.1.0";
-
-            meta = {
-              description = "Making shell scripts more robust.";
-              longDescription = ''
-                Bash strict mode is a collection of settings to help catch bugs
-                in shell scripts. It is intended to be sourced in scripts, not
-                used in an interactive shell where some of the behaviors
-                prohibited here are desirable.
-              '';
-            };
-
-            ## This is needed so that we can run `strict-bash` as our builder
-            ## before it’s installed.
-            PATH = builtins.concatStringsSep ":" [
-              ./bin
-              "${pkgs.bash}/bin"
-              "${pkgs.coreutils}/bin"
-            ];
-
-            nativeBuildInputs = [
-              pkgs.bats
-              pkgs.makeWrapper
-            ];
-
-            patchPhase = ''
-              runHook prePatch
-              (set +u; patchShebangs ./test)
-              runHook postPatch
-            '';
-
-            doCheck = true;
-
-            checkPhase = ''
-              runHook preCheck
-              bats --print-output-on-failure ./test/all-tests.bats
-              ./test/generate strict-mode
-              (set +u; patchShebangs ./test/strict-mode)
-              bats --print-output-on-failure ./test/strict-mode/all-tests.bats
-              runHook postCheck
-            '';
-
-            installPhase = ''
-              runHook preInstall
-              mkdir -p "$out"
-              cp -r ./bin "$out/"
-              wrapProgram "$out/bin/strict-bash" \
-                --prefix PATH : ${pkgs.lib.makeBinPath [
-                pkgs.bashInteractive
-                pkgs.coreutils
-              ]}
-              runHook postInstall
-            '';
-
-            doInstallCheck = true;
-
-            installCheckPhase = ''
-              runHook preInstallCheck
-              ./test/generate strict-bash
-              # should not find things in `PATH`
-              if ./test/is-on-path; then exit 124; fi
-              export PATH="$out/bin:$PATH"
-              # should find things in `PATH`
-              ./test/is-on-path
-              (set +u; patchShebangs ./test/strict-bash)
-              bats --print-output-on-failure ./test/strict-bash/all-tests.bats
-              runHook postInstallCheck
-            '';
-          }));
-      };
+      packages =
+        {default = self.packages.${system}.bash-strict-mode;}
+        // localPackages pkgs;
 
       projectConfigurations =
-        flaky.lib.projectConfigurations.default {inherit pkgs self;};
+        flaky.lib.projectConfigurations.bash {inherit pkgs self;};
 
       devShells =
         self.projectConfigurations.${system}.devShells
@@ -232,6 +112,7 @@
 
     flake-utils.follows = "flaky/flake-utils";
     nixpkgs.follows = "flaky/nixpkgs";
+    systems.follows = "flaky/systems";
 
     ## lint shell snippets in Nix
     shellcheck-nix-attributes = {
