@@ -52,10 +52,14 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
 
   checkPhase = ''
     runHook preCheck
-    bats --print-output-on-failure ./test/all-tests.bats
+    ## The builder itself runs under strict-bash, so we need to unset these to
+    ## run the tests properly.
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./test/all-tests.bats
     ./test/generate strict-mode
     (set +u; patchShebangs ./.cache/test/strict-mode)
-    bats --print-output-on-failure ./.cache/test/strict-mode/all-tests.bats
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./.cache/test/strict-mode/all-tests.bats
     runHook postCheck
   '';
 
@@ -82,7 +86,8 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
     # should find things in `PATH`
     ./test/is-on-path
     (set +u; patchShebangs ./.cache/test/strict-bash)
-    bats --print-output-on-failure ./.cache/test/strict-bash/all-tests.bats
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./.cache/test/strict-bash/all-tests.bats
     runHook postInstallCheck
   '';
 }))
