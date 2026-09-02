@@ -1,6 +1,9 @@
 # [Bash](https://www.gnu.org/software/bash/) strict mode
 
-[![built with garnix](https://img.shields.io/endpoint?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2Fsellout%2Fbash-strict-mode)](https://garnix.io/repo/sellout/bash-strict-mode)
+[![Nix CI](https://nix-ci.com/badge/gh:sellout:bash-strict-mode)](https://nix-ci.com/gh:sellout:bash-strict-mode)
+[![Project Manager](https://img.shields.io/badge/%20-Project%20Manager-%235277C3?logo=nixos&labelColor=%23cccccc)](https://sellout.github.io/project-manager/)
+
+Write better shell scripts
 
 Making shell scripts more robust.
 
@@ -18,7 +21,7 @@ That requires `strict-bash` to be in your `PATH`, but you can also call it direc
 $ path/to/strict-bash some-script.sh
 ```
 
-However, you can also enable strict mode at the file level by sourcing `strict-mode.bash`. If `strict-mode.bash` is in your `PATH` (as it would be if you use the Nix derivation), then you simply need
+However, you can also enable strict mode at the file level by sourcing `strict-mode.bash`. If `strict-mode.bash` is in your `PATH` (as it would be if you use the Nix derivation), then you only need
 
 ```bash
 #!/usr/bin/env bash
@@ -121,7 +124,7 @@ Now, to the behavior of this “strict mode”:
 
 ### How do I work around <some failure>?
 
-Strict mode can catch you by surprise, complaining about various idioms that you thought were fine for years. There are some approaches to avoid those issues described in [Use Bash Strict Mode (Unless You Love Debugging)](http://redsymbol.net/articles/unofficial-bash-strict-mode/#issues-and-solutions). One that we recommend is to use a sub-shell to scope disabling parts of strict mode. For example,
+Strict mode can catch you by surprise, complaining about various idioms that you thought were fine for years. Some approaches to avoid those issues are described in [Use Bash Strict Mode (Unless You Love Debugging)](http://redsymbol.net/articles/unofficial-bash-strict-mode/#issues-and-solutions). One that we recommend is to use a sub-shell to scope disabling parts of strict mode. For example,
 
 ```bash
 <safe code>
@@ -168,7 +171,7 @@ Combining the two is also an option. This should ensure that the scope holds, wh
 
 ## extensions
 
-There are other useful things to include in a script preface, but they aren’t included here for various reasons:
+Other useful things may be included in a script preface, but they aren’t included here for various reasons:
 
 - `IFS=$'\n\t'`: remove space as a field separator – often you want spaces preserved, and only allow newlines or tabs to separate fields. This eliminates a common mistake, but it doesn’t actually make Bash catch any extra bad behavior, so it’s not part of this strict mode.
 - `LC_ALL=C`: remove locale-dependence from the script. This is usually what you want, but if it were part of strict mode, you would lose the value before you could decide you want to keep it, so it’s not included here.
@@ -192,3 +195,33 @@ There are other useful things to include in a script preface, but they aren’t 
     for a lot of discussion on this topic.
 
 [^2]: The variable `SCRIPTDIR` above has affinity with the special value that `shellcheck` uses to indicate an import relative to the script (however, the name that you use doesn’t have to match `shellcheck`).
+
+## development environment
+
+We recommend the following steps to make working in this repository easier.
+
+### `direnv allow`
+
+This command ensures that any work you do within this repository happens within a consistent reproducible environment. That environment provides various debugging tools, etc. When you leave this directory, you leave that environment behind, so it doesn’t impact anything else on your system.
+
+### `git config --local include.path ../.cache/git/config`
+
+This applies our repository-specific Git configuration to `git` commands run against this repository. It’s lightweight (you should definitely look at it before applying this command) – it does things like telling `git blame` to ignore formatting-only commits.
+
+## building & development
+
+Especially if you are unfamiliar with the bash ecosystem, there is a Nix build (both with and without a flake). If you are unfamiliar with Nix, [Nix adjacent](...) can help you get things working in the shortest time and least effort possible.
+
+### if you have `nix` installed
+
+`nix build` will build and test the project fully.
+
+`nix develop` will put you into an environment where the traditional build tooling works. If you also have `direnv` installed, then you should automatically be in that environment when you're in a directory in this project.
+
+## versioning
+
+In the absolute, almost every change is a breaking change. This section describes how we mitigate that to offer minor updates and revisions.
+
+## comparisons
+
+Other projects similar to this one, and how they differ.
