@@ -54,8 +54,8 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
     runHook preCheck
     bats --print-output-on-failure ./test/all-tests.bats
     ./test/generate strict-mode
-    (set +u; patchShebangs ./test/strict-mode)
-    bats --print-output-on-failure ./test/strict-mode/all-tests.bats
+    (set +u; patchShebangs ./.cache/test/strict-mode)
+    bats --print-output-on-failure ./.cache/test/strict-mode/all-tests.bats
     runHook postCheck
   '';
 
@@ -81,8 +81,8 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
     export PATH="$out/bin:$PATH"
     # should find things in `PATH`
     ./test/is-on-path
-    (set +u; patchShebangs ./test/strict-bash)
-    bats --print-output-on-failure ./test/strict-bash/all-tests.bats
+    (set +u; patchShebangs ./.cache/test/strict-bash)
+    bats --print-output-on-failure ./.cache/test/strict-bash/all-tests.bats
     runHook postInstallCheck
   '';
 }))

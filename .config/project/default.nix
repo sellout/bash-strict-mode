@@ -13,6 +13,10 @@
   };
 
   programs = {
+    ## WAIT: Project Manager should ignore all of .cache for us, but currently
+    ##       it puts some state there, so we’re a bit more conservative. See
+    ##       sellout/project-manager#188.
+    git.ignores = ["/.cache/test/"];
     treefmt = let
       shellFiles = ["*.bash" "bin/*" "test/*"];
     in {
