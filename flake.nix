@@ -1,107 +1,26 @@
 {
-  description = "Write better shell scripts.";
+  description = "Write better shell scripts";
 
   nixConfig = {
-    ## https://github.com/NixOS/rfcs/blob/master/rfcs/0045-deprecate-url-syntax.md
-    extra-experimental-features = ["no-url-literals"];
+    ## NB: This is a consequence of using `self.pkgsLib.runEmptyCommand`, which
+    ##     allows us to sandbox derivations that otherwise can’t be.
+    allow-import-from-derivation = true;
+    extra-substituters = ["https://sellout.cachix.org"];
     extra-trusted-public-keys = [
-      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
+      "sellout.cachix.org-1:v37cTpWBEycnYxSPAgSQ57Wiqd3wjljni2aC0Xry1DE="
     ];
-    extra-trusted-substituters = ["https://cache.garnix.io"];
+    ## WAIT: This should be `"fatal"`, but NixOS/nixpkgs#544986.
+    lint-absolute-path-literals = "warn";
+    lint-short-path-literals = "fatal";
+    lint-url-literals = "fatal";
     ## Isolate the build.
-    registries = false;
     sandbox = "relaxed";
+    use-registries = false;
   };
 
-  outputs = {
-    flake-utils,
-    flaky,
-    nixpkgs,
-    self,
-    shellcheck-nix-attributes,
-    systems,
-  }: let
-    supportedSystems = import systems;
-
-    localPkgsLib = pkgs:
-      import ./nix/pkgsLib {
-        inherit pkgs shellcheck-nix-attributes;
-        inherit (nixpkgs) lib;
-      };
-
-    localPackages = pkgs:
-      import ./nix/packages {inherit pkgs shellcheck-nix-attributes;};
-  in
-    {
-      schemas = {
-        inherit
-          (flaky.schemas)
-          schemas
-          overlays
-          lib
-          packages
-          projectConfigurations
-          devShells
-          checks
-          formatter
-          ;
-      };
-
-      overlays = {
-        default =
-          nixpkgs.lib.composeExtensions
-          flaky.overlays.default
-          self.overlays.local;
-
-        local = final: prev: localPkgsLib final // localPackages final;
-      };
-
-      homeConfigurations =
-        builtins.listToAttrs
-        (builtins.map
-          (flaky.lib.homeConfigurations.example self
-            [({pkgs, ...}: {home.packages = [pkgs.bash-strict-mode];})])
-          supportedSystems);
-    }
-    // flake-utils.lib.eachSystem supportedSystems (system: let
-      pkgs = nixpkgs.legacyPackages.${system}.appendOverlays [
-        flaky.overlays.default
-      ];
-    in {
-      apps = {
-        default = self.apps.${system}.strict-bash;
-
-        strict-bash = flake-utils.lib.mkApp {
-          drv = self.packages.${system}.bash-strict-mode;
-        };
-      };
-
-      pkgsLib = localPkgsLib pkgs;
-
-      packages =
-        {default = self.packages.${system}.bash-strict-mode;}
-        // localPackages pkgs;
-
-      projectConfigurations =
-        flaky.lib.projectConfigurations.bash {inherit pkgs self;};
-
-      devShells =
-        self.projectConfigurations.${system}.devShells
-        // {
-          default =
-            self.devShells.${system}.project-manager.overrideAttrs
-            (old: {
-              inputsFrom =
-                old.inputsFrom
-                or []
-                ++ builtins.attrValues
-                self.projectConfigurations.${system}.sandboxedChecks
-                ++ builtins.attrValues self.packages.${system};
-            });
-        };
-      checks = self.projectConfigurations.${system}.checks;
-      formatter = self.projectConfigurations.${system}.formatter;
-    });
+  ## The flake isn’t a Nix expression, so it’s clearer to keep `outputs` (which
+  ## is) in a separate file.
+  outputs = inputs: import .config/flake/outputs.nix inputs;
 
   inputs = {
     ## Flaky should generally be the source of truth for its inputs.

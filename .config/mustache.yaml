@@ -1,0 +1,10 @@
+{
+  "project":
+    {
+      "description": "Making shell scripts more robust.",
+      "name": "bash-strict-mode",
+      "repo": "sellout/bash-strict-mode",
+      "summary": "Write better shell scripts",
+    },
+  "type": { "name": "bash" },
+}
