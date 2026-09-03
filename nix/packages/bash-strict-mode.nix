@@ -52,10 +52,14 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
 
   checkPhase = ''
     runHook preCheck
-    bats --print-output-on-failure ./test/all-tests.bats
+    ## The builder itself runs under strict-bash, so we need to unset these to
+    ## run the tests properly.
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./test/all-tests.bats
     ./test/generate strict-mode
-    (set +u; patchShebangs ./test/strict-mode)
-    bats --print-output-on-failure ./test/strict-mode/all-tests.bats
+    (set +u; patchShebangs ./.cache/test/strict-mode)
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./.cache/test/strict-mode/all-tests.bats
     runHook postCheck
   '';
 
@@ -81,8 +85,18 @@ shellchecked (strictBuilder "strict-bash" (stdenv.mkDerivation {
     export PATH="$out/bin:$PATH"
     # should find things in `PATH`
     ./test/is-on-path
-    (set +u; patchShebangs ./test/strict-bash)
-    bats --print-output-on-failure ./test/strict-bash/all-tests.bats
+    ## NOTE: This can’t use `patchShebangs`, because `strict-bash` is a script,
+    ##       and (depending on the OS & shell) scripts are rejected as
+    ##       interpreters, with misleading fallback behavior. Instead, we make
+    ##       Bash the interpreter, and have it call the full path of
+    ##       `strict-bash`.
+    for t in ./.cache/test/strict-bash/*; do
+      if [ -x "$t" ]; then
+        sed -i "1s|.*|#!$(command -v bash) $out/bin/strict-bash|" "$t"
+      fi
+    done
+    env -u BASH_ENV -u SHELLOPTS -u BASHOPTS \
+      bats --print-output-on-failure ./.cache/test/strict-bash/all-tests.bats
     runHook postInstallCheck
   '';
 }))

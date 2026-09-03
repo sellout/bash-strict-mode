@@ -31,16 +31,36 @@ bats_require_minimum_version 1.5.0
     $output =~ :\ cat ]]
 }
 
-@test "shopt -s inherit_errexit catches broken subshells" {
-  run -1 "$BATS_TEST_DIRNAME/shopt-s-inherit_errexit"
+@test "errexit catches a failed command substitution" {
+  run -1 "$BATS_TEST_DIRNAME/errexit-command-substitution"
   [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
     $output =~ Error\ on\ line &&
     $output =~ :\ RESULT=\$\(cat\ nothing-here-man\) ]]
 }
 
-@test "inherit_errexit also pipefails" {
-  run -1 "$BATS_TEST_DIRNAME/inherit_errexit-pipefail"
+@test "pipefail applies inside a command substitution" {
+  run -1 "$BATS_TEST_DIRNAME/pipefail-command-substitution"
   [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
     $output =~ Error\ on\ line &&
     $output =~ :\ RESULT=\$\(cat\ nothing-here-man\ |\ cat\) ]]
+}
+
+@test "inherit_errexit aborts the subshell at the failure" {
+  run -1 "$BATS_TEST_DIRNAME/inherit_errexit-aborts-subshell"
+  [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
+    $output =~ Error\ on\ line &&
+    $output =~ :\ RESULT=\$\(cat\ nothing-here-man ]]
+}
+
+@test "inherit_errexit is what makes that test fail" {
+  ## Control for the test above: the same body, but without `inherit_errexit`.
+  ## If this doesn’t exit with `0`, then the test above isn’t testing the right
+  ## thing.
+  # shellcheck disable=SC2016 # `$1` is for the inner shell, not this one.
+  run -0 bash -euo pipefail -c \
+    'shopt -u inherit_errexit 2>/dev/null || true
+     source "$1"' _ \
+    "$BATS_TEST_DIRNAME/../../../test/template/inherit_errexit-aborts-subshell.bash"
+  [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
+    $output =~ kept\ going ]]
 }

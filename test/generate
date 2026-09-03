@@ -8,7 +8,8 @@ source "${SCRIPTDIR}/../bin/strict-mode.bash"
 
 template_path="${SCRIPTDIR}/template"
 test_type="${1}"
-test_path="${SCRIPTDIR}/${test_type}"
+test_path="${SCRIPTDIR}/../.cache/test/${test_type}"
+header_path="${SCRIPTDIR}/${test_type}.bash"
 mkdir -p "${test_path}"
 
 cd "${template_path}" || exit 125
@@ -17,7 +18,7 @@ for t in *; do
   if [[ ${t} =~ .*\.bash$ ]]; then
     new="${test_path}/${t%.bash}"
     {
-      cat "${test_path}.bash"
+      cat "${header_path}"
       echo
       cat "${old}"
     } > "${new}"

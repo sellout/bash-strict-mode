@@ -21,6 +21,20 @@ That requires `strict-bash` to be in your `PATH`, but you can also call it direc
 $ path/to/strict-bash some-script.sh
 ```
 
+**NOTE**: Keep the `/usr/bin/env`. Rewriting that shebang to name `strict-bash` directly, as `#!/path/to/strict-bash`, disables strict mode without saying so. BSD-derived kernels refuse to use a script as a shebang interpreter, failing with `ENOEXEC`, and the result then depends on whatever performed the exec:
+
+- zsh re-execs with the correct interpreter,
+- Bash appoints itself the interpreter, and
+- `execvp(3)` falls back to `/bin/sh`.
+
+Since `strict-bash` wraps Bash, the script still runs in every one of those cases — just without strict mode, and without an error. Going through `env` avoids this, because `env` performs the second exec itself. See [NixOS/nix#9488](https://github.com/NixOS/nix/issues/9488) for the same problem under `nix run`.
+
+This matters under Nix, where `patchShebangs` performs precisely that rewrite. Where a script’s shebang has to name absolute paths, a shebang may carry one argument, so name Bash and hand it `strict-bash`:
+
+```bash
+#!/path/to/bash /path/to/strict-bash
+```
+
 However, you can also enable strict mode at the file level by sourcing `strict-mode.bash`. If `strict-mode.bash` is in your `PATH` (as it would be if you use the Nix derivation), then you only need
 
 ```bash
