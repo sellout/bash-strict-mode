@@ -128,7 +128,7 @@ Now, to the behavior of this “strict mode”:
 - `set -u` / `-o nounset`: references to undefined variables are an error;
 - `set -o pipefail`: if a command that’s not the end of the a pipeline (`|`) fails, fail the whole pipeline;
 - `shopt -s inherit_errexit`: If a sub-shell (`$()`) fails, fail the calling shell; and
-- `trap … ERR`: When an error occurs, report _where_ it occurred.
+- `trap … ERR`: When an error occurs, report _where_ it occurred, what the command was, the code it exited with, and the frames it was called through.
 
 ## Often Asked Questions
 
