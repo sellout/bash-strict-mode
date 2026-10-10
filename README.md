@@ -124,6 +124,7 @@ The last line enables strict mode. You could instead just copy the body of `stri
 Now, to the behavior of this “strict mode”:
 
 - `set -e` / `-o errexit`: exit immediately if any command has a non-zero exit;
+- `set -E` / `-o errtrace`: extend the `ERR` trap below to shell functions, which don’t inherit it otherwise – without this, a failure inside a function still exits, but silently;
 - `set -u` / `-o nounset`: references to undefined variables are an error;
 - `set -o pipefail`: if a command that’s not the end of the a pipeline (`|`) fails, fail the whole pipeline;
 - `shopt -s inherit_errexit`: If a sub-shell (`$()`) fails, fail the calling shell; and
@@ -179,6 +180,18 @@ Combining the two is also an option. This should ensure that the scope holds, wh
   codeDependingOnSource
 )
 ```
+
+### Should I write `someCommand || return` to pass a failure up?
+
+No. Under strict mode a bare command already fails the script, and `||` causes the `ERR` trap to not fire (although `return` will trigger the trap at a different location).
+
+| idiom                     | what the trap reports                             |
+| ------------------------- | ------------------------------------------------- |
+| `someCommand`             | the failing line, and the command on it           |
+| `someCommand \|\| exit`   | nothing – the script exits silently               |
+| `someCommand \|\| return` | the _caller’s_ line, with `return` as the command |
+
+So prefer the bare command. ShellCheck asks for the `||` forms in [SC2164](https://www.shellcheck.net/wiki/SC2164) for `cd`, `pushd` and `popd`, but only when it can’t tell that `errexit` is in force – give ShellCheck the `-x` option (and a [`source-path` directive](https://www.shellcheck.net/wiki/Directive) if strict mode isn’t on `PATH`) so it follows the `source`, and SC2164 stops asking. Using `# shellcheck disable=SC2164` on the one line is another option.
 
 <!-- vale Microsoft.FirstPerson = YES -->
 <!-- vale Microsoft.HeadingPunctuation = YES -->

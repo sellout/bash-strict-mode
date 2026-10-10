@@ -64,3 +64,27 @@ bats_require_minimum_version 1.5.0
   [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
     $output =~ kept\ going ]]
 }
+
+@test "errtrace reports a failure inside a function" {
+  run -1 "$BATS_TEST_DIRNAME/errtrace-reports-inside-function"
+  [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
+    $output =~ Error\ on\ line &&
+    $output =~ :\ cat\ nothing-here-man &&
+    ! $output =~ kept\ going ]]
+}
+
+@test "errtrace is what makes that test report" {
+  ## Control for the test above: the same body, reached through the same trap,
+  ## but with `errtrace` turned back off. The failure still exits non-zero, but
+  ## nothing says where it happened.
+  # shellcheck disable=SC2016 # `$1` and `$2` are for the inner shell.
+  run -1 bash -c \
+    'source "$1"
+     set +o errtrace
+     source "$2"' _ \
+    "$BATS_TEST_DIRNAME/../../../bin/strict-mode.bash" \
+    "$BATS_TEST_DIRNAME/../../../test/template/errtrace-reports-inside-function.bash"
+  [[ $output =~ ^cat:\ nothing-here-man:\ No\ such\ file\ or\ directory &&
+    ! $output =~ Error\ on\ line &&
+    ! $output =~ kept\ going ]]
+}

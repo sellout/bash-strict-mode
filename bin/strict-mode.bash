@@ -1,5 +1,6 @@
 set \
   -o errexit \
+  -o errtrace \
   -o nounset \
   -o pipefail
 
