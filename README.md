@@ -21,9 +21,9 @@ That requires `strict-bash` to be in your `PATH`, but you can also call it direc
 $ path/to/strict-bash some-script.sh
 ```
 
-**NOTE**: Keep the `/usr/bin/env`. Rewriting that shebang to name `strict-bash` directly, as `#!/path/to/strict-bash`, disables strict mode without saying so. BSD-derived kernels refuse to use a script as a shebang interpreter, failing with `ENOEXEC`, and the result then depends on whatever performed the exec:
+Keep the `/usr/bin/env`. Rewriting that shebang to name `strict-bash` directly, as `#!/path/to/strict-bash`, disables strict mode without saying so. BSD-derived kernels refuse to use a script as a shebang interpreter, failing with `ENOEXEC`, and the result then depends on whatever performed the exec:
 
-- zsh re-execs with the correct interpreter,
+- `zsh` re-execs with the correct interpreter,
 - Bash appoints itself the interpreter, and
 - `execvp(3)` falls back to `/bin/sh`.
 
@@ -191,7 +191,7 @@ No. Under strict mode a bare command already fails the script, and `||` causes t
 | `someCommand \|\| exit`   | nothing – the script exits silently               |
 | `someCommand \|\| return` | the _caller’s_ line, with `return` as the command |
 
-So prefer the bare command. ShellCheck asks for the `||` forms in [SC2164](https://www.shellcheck.net/wiki/SC2164) for `cd`, `pushd` and `popd`, but only when it can’t tell that `errexit` is in force – give ShellCheck the `-x` option (and a [`source-path` directive](https://www.shellcheck.net/wiki/Directive) if strict mode isn’t on `PATH`) so it follows the `source`, and SC2164 stops asking. Using `# shellcheck disable=SC2164` on the one line is another option.
+Prefer the bare command. ShellCheck asks for the `||` forms in [SC2164](https://www.shellcheck.net/wiki/SC2164) for `cd`, `pushd` and `popd`, but only when it can’t tell that `errexit` is in force – give ShellCheck the `-x` option (and a [`source-path` directive](https://www.shellcheck.net/wiki/Directive) if strict mode isn’t on `PATH`) so it follows the `source`, and SC2164 stops asking. Using `# shellcheck disable=SC2164` on the one line is another option.
 
 <!-- vale Microsoft.FirstPerson = YES -->
 <!-- vale Microsoft.HeadingPunctuation = YES -->
