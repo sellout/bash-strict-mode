@@ -51,8 +51,11 @@
     };
   };
 
-  services.github.settings.repository = {
-    private = false;
-    topics = ["bash" "development" "nix-flakes"];
-  };
+  ## publishing
+  services.github.settings.repository.private = false;
+  services.github.settings.repository.topics = [
+    "bash"
+    "development"
+    "nix-flakes"
+  ];
 }
