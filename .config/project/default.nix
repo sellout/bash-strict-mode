@@ -39,15 +39,23 @@
         shfmt.includes = shellFiles;
       };
     };
-    vale.excludes = [
-      "./bin/strict-bash"
-      "./test/generate"
-      "./test/is-on-path"
-    ];
+    vale = {
+      excludes = [
+        "./bin/strict-bash"
+        "./test/generate"
+        "./test/is-on-path"
+      ];
+      vocab.${config.project.name}.accept = [
+        "[Ss]hell[Cc]heck" # Allow lowercase for directives in scripts
+      ];
+    };
   };
 
-  services.github.settings.repository = {
-    private = false;
-    topics = ["bash" "development" "nix-flakes"];
-  };
+  ## publishing
+  services.github.settings.repository.private = false;
+  services.github.settings.repository.topics = [
+    "bash"
+    "development"
+    "nix-flakes"
+  ];
 }

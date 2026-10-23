@@ -73,16 +73,14 @@ in
     devShells =
       self.projectConfigurations.${system}.devShells
       // {
-        default =
-          self.devShells.${system}.project-manager.overrideAttrs
-          (old: {
-            inputsFrom =
-              old.inputsFrom
-              or []
-              ++ builtins.attrValues
+        default = pkgs.mkShell {
+          inputsFrom =
+            [self.devShells.${system}.project-manager]
+            ++ map (drv: drv.unwrapped or drv)
+            (builtins.attrValues
               self.projectConfigurations.${system}.sandboxedChecks
-              ++ builtins.attrValues self.packages.${system};
-          });
+              ++ builtins.attrValues self.packages.${system});
+        };
       };
     checks = self.projectConfigurations.${system}.checks;
     formatter = self.projectConfigurations.${system}.formatter;

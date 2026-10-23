@@ -1,6 +1,6 @@
-Hacktoberfest
 direnv
 formatter
 [Nn]ix
 Pfeil
 ShellCheck
+[Ss]hell[Cc]heck
